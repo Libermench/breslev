@@ -473,6 +473,8 @@ tr.guest-row{background:var(--terra-light);}
 </div>
 
 <div id="modal-root"></div>
+
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyAwFFe1BcQD3ZFxUb_fXUfSK0bqV5vrO9g",
   authDomain: "breslev-1ec71.firebaseapp.com",
@@ -481,7 +483,7 @@ const firebaseConfig = {
   messagingSenderId: "742608799104",
   appId: "1:742608799104:web:934318067aa23d62ef6d65"
 };
-<script>
+
 function mod(a,b){ return a - b*Math.floor(a/b); }
 function hebrew_leap(year){ return mod(year*7+1,19) < 7; }
 function hebrew_year_months(year){ return hebrew_leap(year) ? 13 : 12; }
