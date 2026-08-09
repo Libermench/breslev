@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול עליות וכיבודים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAF6EC;
+  --panel:#FFFFFF;
+  --ink:#2B2438;
+  --ink-soft:#5B5468;
+  --line:#E4DCC8;
+  --wine:#5C1F2E;
+  --wine-dark:#3E1420;
+  --gold:#B8912E;
+  --gold-light:#F1E4BC;
+  --gold-lighter:#FBF3DC;
+  --sage:#4C7A5B;
+  --sage-light:#E4EFE7;
+  --terra:#9A4A34;
+  --terra-light:#F2E1D8;
+  --radius:12px;
+  --shadow:0 2px 10px rgba(60,40,20,0.06);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Rubik',sans-serif;
+  padding:24px 16px 80px;
+}
+.wrap{max-width:960px;margin:0 auto;}
+header.top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:22px;
+  border-bottom:2px solid var(--gold);
+  padding-bottom:14px;
+}
+header.top .title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-weight:700;
+  font-size:26px;
+  color:var(--wine-dark);
+}
+header.top .sub{
+  font-size:13px;
+  color:var(--ink-soft);
+  margin-top:2px;
+}
+.ornament{
+  width:34px;height:34px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, var(--gold-light), var(--gold));
+  flex-shrink:0;
+  border:1px solid var(--gold);
+}
+nav.tabs{
+  display:flex;
+  gap:4px;
+  margin-bottom:20px;
+  background:var(--gold-lighter);
+  border-radius:var(--radius);
+  padding:5px;
+  flex-wrap:wrap;
+}
+nav.tabs button{
+  flex:1;
+  min-width:100px;
+  border:none;
+  background:transparent;
+  padding:9px 6px;
+  font-family:'Rubik',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  color:var(--ink-soft);
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .15s,color .15s;
+}
+nav.tabs button.active{
+  background:var(--wine);
+  color:#fff;
+}
+section.panel{
+  background:var(--panel);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  border:1px solid var(--line);
+  padding:20px;
+  margin-bottom:18px;
+}
+h2.panel-title{
+  font-family:'Frank Ruhl Libre',serif;
+  font-size:18px;
+  color:var(--wine-dark);
+  margin:0 0 14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+h2.panel-title::before{
+  content:"";
+  width:6px;height:18px;
+  background:var(--gold);
+  border-radius:3px;
+  display:inline-block;
+}
+.hidden{display:none !important;}
+label{
+  font-size:13px;
+  color:var(--ink-soft);
+  display:block;
+  margin-bottom:4px;
+}
+input[type=text], input[type=number], select, textarea{
+  width:100%;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-family:'Rubik',sans-serif;
+  font-size:14px;
+  background:#fff;
+  color:var(--ink);
+}
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color:var(--gold);
+  box-shadow:0 0 0 2px var(--gold-light);
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+@media (max-width:640px){.grid2,.grid3,.grid4{grid-template-columns:1fr;}}
+.field{margin-bottom:12px;}
+button.btn{
+  border:1px solid var(--wine);
+  background:var(--wine);
+  color:#fff;
+  padding:9px 16px;
+  border-radius:8px;
+  font-family:'Rubik',sans-serif;
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+}
+button.btn:hover{background:var(--wine-dark);}
+button.btn.secondary{
+  background:transparent;
+  color:var(--wine);
+}
+button.btn.secondary:hover{background:var(--terra-light);}
+button.btn.small{padding:5px 10px;font-size:12px;}
+button.btn.danger{
+  background:transparent;
+  border-color:var(--terra);
+  color:var(--terra);
+}
+button.btn.danger:hover{background:var(--terra-light);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{
+  text-align:right;
+  color:var(--ink-soft);
+  font-weight:500;
+  font-size:12px;
+  padding:8px 6px;
+  border-bottom:2px solid var(--gold-light);
+}
+td{
+  padding:8px 6px;
+  border-bottom:1px solid var(--line);
+  vertical-align:middle;
+}
+tr.guest-row{background:var(--terra-light);}
+.badge{
+  display:inline-block;
+  padding:2px 9px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:500;
+}
+.badge.cohen{background:var(--gold-light);color:#7a5a0e;}
+.badge.levi{background:#DDE7F0;color:#2A4A6B;}
+.badge.israel{background:#EEEAF3;color:#5B4A6E;}
+.badge.cat{background:var(--sage-light);color:var(--sage);}
+.badge.paid{background:var(--sage-light);color:var(--sage);}
+.badge.unpaid{background:var(--terra-light);color:var(--terra);}
+.empty-state{
+  text-align:center;
+  padding:30px 10px;
+  color:var(--ink-soft);
+  font-size:14px;
+}
+.event-card{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:12px 14px;
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:border-color .15s;
+}
+.event-card:hover{border-color:var(--gold);}
+.event-card .ev-title{font-weight:500;font-size:15px;color:var(--wine-dark);}
+.event-card .ev-sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.honor-row{
+  display:grid;
+  grid-template-columns:1.3fr 1.5fr 0.7fr 0.7fr 0.9fr auto;
+  gap:8px;
+  align-items:center;
+  padding:8px 0;
+  border-bottom:1px solid var(--line);
+}
+@media (max-width:760px){.honor-row{grid-template-columns:1fr 1fr;}}
+.honor-row input, .honor-row select{padding:6px 8px;font-size:13px;}
+.paid-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);}
+.summary-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.summary-card{flex:1;min-width:140px;background:var(--gold-lighter);border-radius:10px;padding:12px 14px;}
+.summary-card .num{font-size:22px;font-weight:700;color:var(--wine-dark);font-family:'Frank Ruhl Libre',serif;}
+.summary-card .lbl{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.filter-row button{border:1px solid var(--line);background:#fff;padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;color:var(--ink-soft);}
+.filter-row button.active{background:var(--wine);color:#fff;border-color:var(--wine);}
+.divider{height:1px;background:var(--line);margin:16px 0;}
+.small-note{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+.icon-btn{border:none;background:none;cursor:pointer;color:var(--ink-soft);font-size:16px;padding:4px;}
+.icon-btn:hover{color:var(--wine);}
+.heb-date{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:6px;}
+.tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.tag-chip{background:var(--gold-lighter);border:1px solid var(--gold-light);border-radius:16px;padding:4px 10px;font-size:13px;display:flex;align-items:center;gap:6px;}
+.tag-chip button{border:none;background:none;color:var(--terra);cursor:pointer;font-size:13px;}
+.settings-block{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px;}
+.settings-block h3{margin:0 0 10px;font-size:15px;color:var(--wine-dark);}
+.year-header{
+  background:var(--gold-lighter);
+  padding:10px 14px;border-radius:8px;
+  cursor:pointer;font-weight:500;
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:6px;
+}
+.month-header{
+  background:#fff;border:1px solid var(--line);
+  padding:8px 14px;border-radius:8px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  margin:6px 0 6px 18px;font-size:13px;color:var(--ink-soft);
+}
+.month-body{margin-right:18px;}
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(43,36,56,.55);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;z-index:50;
+}
+.modal-box{
+  background:#fff;border-radius:14px;max-width:640px;width:100%;
+  max-height:86vh;overflow-y:auto;padding:22px;
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+.modal-box h2{margin-top:0;}
+.yahrzeit-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.reminders-box{
+  background:var(--sage-light);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--sage);
+}
+.reminders-box b{color:var(--wine-dark);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <div class="title">ניהול עליות וכיבודים</div>
+    <div class="sub">כלי לגבאי — לפי לוח שנה עברי</div>
+  </div>
+  <div class="ornament"></div>
+</header>
+
+<nav class="tabs">
+  <button data-tab="people" class="active">קהל</button>
+  <button data-tab="events">אירועים ועליות</button>
+  <button data-tab="payments">תשלומים</button>
+  <button data-tab="pledges">התחייבויות</button>
+  <button data-tab="settings">הגדרות</button>
+</nav>
+
+<div id="tab-people">
+  <div id="reminders-panel"></div>
+
+  <section class="panel">
+    <h2 class="panel-title" id="people-form-title">הוספת מתפלל</h2>
+    <div class="grid4">
+      <div class="field"><label>שם משפחה</label><input type="text" id="p-lastname" placeholder="לדוגמה: כהן"></div>
+      <div class="field"><label>שם פרטי</label><input type="text" id="p-firstname" placeholder="לדוגמה: משה"></div>
+      <div class="field"><label>שם האב</label><input type="text" id="p-father" placeholder="לדוגמה: אברהם"></div>
+      <div class="field">
+        <label>סטטוס</label>
+        <select id="p-status"><option value="ישראל">ישראל</option><option value="כהן">כהן</option><option value="לוי">לוי</option></select>
+      </div>
+      <div class="field">
+        <label>קטגוריה (אופציונלי)</label>
+        <select id="p-category"><option value="">ללא</option></select>
+      </div>
+      <div class="field">
+        <label>סוג</label>
+        <select id="p-type"><option value="קבוע">חבר קבוע</option><option value="אורח">אורח</option></select>
+      </div>
+      <div class="field" id="p-guestof-field">
+        <label>אורח של</label>
+        <select id="p-guestof"><option value="">בחירת מארח...</option></select>
+      </div>
+      <div class="field"><label>מספר ילדים</label><input type="number" id="p-children" min="0" placeholder="לדוגמה: 3"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>יום הולדת (עברי, אופציונלי)</label>
+        <div class="heb-date" id="p-birthday-picker"></div>
+      </div>
+      <div class="field">
+        <label>הערות</label>
+        <input type="text" id="p-notes" placeholder="הערות חופשיות">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>יארצייטים</label>
+      <div id="p-yahrzeits-list"></div>
+      <button class="btn secondary small" id="p-add-yahrzeit" type="button">+ הוספת יארצייט</button>
+    </div>
+
+    <div class="divider"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" id="p-save-btn">הוספת מתפלל</button>
+      <button class="btn danger hidden" id="p-cancel-edit">ביטול עריכה</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">רשימת המתפללים</h2>
+    <div class="field"><input type="text" id="people-search" placeholder="חיפוש לפי שם או שם משפחה..."></div>
+    <div id="people-list"></div>
+  </section>
+</div>
+
+<div id="tab-events" class="hidden">
+  <section class="panel">
+    <h2 class="panel-title" id="event-form-title">אירוע חדש</h2>
+    <div class="grid3">
+      <div class="field"><label>שם האירוע (פרשה / חג)</label><input type="text" id="ev-title" placeholder="לדוגמה: פרשת בראשית"></div>
+      <div class="field">
+        <label>תאריך עברי</label>
+        <div class="heb-date" id="ev-date-picker"></div>
+      </div>
+      <div class="field"><label>סוג האירוע</label><select id="ev-occasion"></select></div>
+    </div>
+    <div id="honors-container"></div>
+    <div style="margin-top:10px;"><button class="btn secondary small" id="add-honor-row" type="button">+ הוספת כיבוד</button></div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" id="save-event-btn">שמירת אירוע</button>
+      <button class="btn danger hidden" id="cancel-edit-btn">ביטול עריכה</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">אירועים שמורים</h2>
+    <div class="grid3" style="margin-bottom:10px;">
+      <div class="field"><input type="text" id="events-search" placeholder="חיפוש לפי שם אירוע..."></div>
+      <div class="field">
+        <select id="events-occasion-filter"><option value="">כל סוגי האירועים</option></select>
+      </div>
+      <div class="field"><input type="number" id="events-year-filter" placeholder="סינון לפי שנה עברית"></div>
+    </div>
+    <div id="events-tree"></div>
+  </section>
+</div>
+
+<div id="tab-payments" class="hidden">
+  <section class="panel">
+    <div class="summary-bar">
+      <div class="summary-card"><div class="num" id="sum-unpaid">0</div><div class="lbl">חובות פתוחים (₪)</div></div>
+      <div class="summary-card"><div class="num" id="sum-paid">0</div><div class="lbl">שולם בסה"כ (₪)</div></div>
+      <div class="summary-card"><div class="num" id="sum-count">0</div><div class="lbl">מכירות עם מחיר</div></div>
+    </div>
+    <div class="filter-row">
+      <button data-filter="all" class="active">הכל</button>
+      <button data-filter="unpaid">חובות פתוחים</button>
+      <button data-filter="paid">שולם</button>
+    </div>
+    <div class="field" style="max-width:280px;margin-bottom:14px;">
+      <label>סינון לפי מקבל תשלום</label>
+      <select id="payee-filter"><option value="">הכל</option></select>
+    </div>
+    <div id="payments-list"></div>
+  </section>
+</div>
+
+<div id="tab-pledges" class="hidden">
+  <section class="panel">
+    <h2 class="panel-title" id="pledge-form-title">התחייבות / נדבה חדשה</h2>
+    <div class="grid2">
+      <div class="field"><label>תיאור</label><input type="text" id="pl-desc" placeholder="לדוגמה: פרנס המאור לשבת פרשת..."></div>
+      <div class="field"><label>מי התחייב</label><select id="pl-person"><option value="">בחירת מתפלל...</option></select></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label>סכום (₪)</label><input type="number" id="pl-amount" placeholder="0"></div>
+      <div class="field"><label>תאריך עברי</label><div class="heb-date" id="pl-date-picker"></div></div>
+      <div class="field"><label>שולם למי</label><select id="pl-paidto"></select></div>
+    </div>
+    <div class="field"><label class="paid-toggle" style="font-size:14px;"><input type="checkbox" id="pl-paid"> שולם</label></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" id="pl-save-btn">שמירה</button>
+      <button class="btn danger hidden" id="pl-cancel-edit">ביטול עריכה</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">רשימת התחייבויות</h2>
+    <div class="summary-bar">
+      <div class="summary-card"><div class="num" id="pl-sum-unpaid">0</div><div class="lbl">חובות פתוחים (₪)</div></div>
+      <div class="summary-card"><div class="num" id="pl-sum-paid">0</div><div class="lbl">שולם בסה"כ (₪)</div></div>
+    </div>
+    <div id="pledges-list"></div>
+  </section>
+</div>
+
+<div id="tab-settings" class="hidden">
+  <section class="panel">
+    <h2 class="panel-title">סוגי אירועים וכיבודי ברירת מחדל</h2>
+    <div id="occasion-settings"></div>
+    <div class="divider"></div>
+    <div class="grid3">
+      <div class="field"><input type="text" id="new-occasion-name" placeholder="שם סוג אירוע חדש"></div>
+      <div class="field" style="grid-column:span 2;"><input type="text" id="new-occasion-honors" placeholder="כיבודים מופרדים בפסיק: כהן, לוי, שלישי..."></div>
+    </div>
+    <button class="btn secondary" id="add-occasion-btn">הוספת סוג אירוע</button>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">קטגוריות מתפללים</h2>
+    <div class="tag-list" id="categories-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <input type="text" id="new-category" placeholder="לדוגמה: בחורים" style="max-width:220px;">
+      <button class="btn secondary small" id="add-category-btn">הוספה</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">מקבלי תשלום</h2>
+    <div class="tag-list" id="payees-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <input type="text" id="new-payee" placeholder="לדוגמה: קופת בית הכנסת" style="max-width:220px;">
+      <button class="btn secondary small" id="add-payee-btn">הוספה</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">גיבוי ושחזור</h2>
+    <p class="small-note">ייצוא כל הנתונים לקובץ, לשמירה מחוץ למערכת או להעברה למחשב אחר.</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn secondary" id="export-btn">ייצוא נתונים</button>
+      <label class="btn secondary" style="cursor:pointer;">
+        ייבוא נתונים
+        <input type="file" id="import-file" accept=".json" style="display:none;">
+      </label>
+    </div>
+  </section>
+</div>
+
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+function mod(a,b){ return a - b*Math.floor(a/b); }
+function hebrew_leap(year){ return mod(year*7+1,19) < 7; }
+function hebrew_year_months(year){ return hebrew_leap(year) ? 13 : 12; }
+function hebrew_calendar_elapsed_days(year){
+  var months_elapsed = (235*Math.floor((year-1)/19)) + (12*mod((year-1),19)) + Math.floor((7*mod((year-1),19)+1)/19);
+  var parts_elapsed = 204 + 793*mod(months_elapsed,1080);
+  var hours_elapsed = 5 + 12*months_elapsed + 793*Math.floor(months_elapsed/1080) + Math.floor(parts_elapsed/1080);
+  var conjunction_day = 1 + 29*months_elapsed + Math.floor(hours_elapsed/24);
+  var conjunction_parts = 1080*mod(hours_elapsed,24) + mod(parts_elapsed,1080);
+  var alt_day;
+  if((conjunction_parts>=19440) || ((mod(conjunction_day,7)==2)&&(conjunction_parts>=9924)&&!hebrew_leap(year)) || ((mod(conjunction_day,7)==1)&&(conjunction_parts>=16789)&&hebrew_leap(year-1))){
+    alt_day = conjunction_day+1;
+  } else { alt_day = conjunction_day; }
+  if(mod(alt_day,7)==0 || mod(alt_day,7)==3 || mod(alt_day,7)==5){ return alt_day+1; } else { return alt_day; }
+}
+function hebrew_year_days(year){ return hebrew_calendar_elapsed_days(year+1) - hebrew_calendar_elapsed_days(year); }
+function long_marchesvan(year){ return mod(hebrew_year_days(year),10)==5; }
+function short_kislev(year){ return mod(hebrew_year_days(year),10)==3; }
+function last_day_of_hebrew_month(year, month){
+  if((month==2)||(month==4)||(month==6)||((month==8)&&!long_marchesvan(year))||((month==9)&&short_kislev(year))||(month==10)||((month==12)&&!hebrew_leap(year))||(month==13)){ return 29; } else { return 30; }
+}
+var HEBREW_EPOCH = -1373428;
+function hebrew_to_rd(year, month, day){
+  var months_in_year = hebrew_year_months(year);
+  var m, sum = 0;
+  if(month < 7){
+    for(m=7;m<=months_in_year;m++) sum += last_day_of_hebrew_month(year,m);
+    for(m=1;m<month;m++) sum += last_day_of_hebrew_month(year,m);
+  } else {
+    for(m=7;m<month;m++) sum += last_day_of_hebrew_month(year,m);
+  }
+  return HEBREW_EPOCH + hebrew_calendar_elapsed_days(year) + sum + day - 1;
+}
+function rd_to_hebrew(rd){
+  var approx = Math.floor((rd-HEBREW_EPOCH)/(35975351.0/98496.0)) + 1;
+  var year = approx - 1;
+  while(HEBREW_EPOCH + hebrew_calendar_elapsed_days(year+1) <= rd) year++;
+  var months_in_year = hebrew_year_months(year);
+  var month = (rd < hebrew_to_rd(year,1,1)) ? 7 : 1;
+  while(true){
+    var last = last_day_of_hebrew_month(year,month);
+    if(rd < hebrew_to_rd(year,month,1)+last) break;
+    month++;
+    if(month > months_in_year) break;
+  }
+  var day = rd - hebrew_to_rd(year,month,1) + 1;
+  return {y:year, m:month, d:day};
+}
+function gregorian_to_rd(y,m,d){
+  var a = Math.floor((14-m)/12);
+  var y2 = y+4800-a;
+  var m2 = m+12*a-3;
+  var jdn = d + Math.floor((153*m2+2)/5) + 365*y2 + Math.floor(y2/4) - Math.floor(y2/100) + Math.floor(y2/400) - 32045;
+  return jdn - 1721425;
+}
+
+var MONTH_NAMES_REG = {1:'ניסן',2:'אייר',3:'סיוון',4:'תמוז',5:'אב',6:'אלול',7:'תשרי',8:'חשוון',9:'כסלו',10:'טבת',11:'שבט',12:'אדר'};
+var MONTH_NAMES_LEAP = {1:'ניסן',2:'אייר',3:'סיוון',4:'תמוז',5:'אב',6:'אלול',7:'תשרי',8:'חשוון',9:'כסלו',10:'טבת',11:'שבט',12:"אדר א'",13:"אדר ב'"};
+function monthName(year, month){
+  return hebrew_leap(year) ? MONTH_NAMES_LEAP[month] : MONTH_NAMES_REG[month];
+}
+function monthsOrderForYear(year){
+  var n = hebrew_year_months(year);
+  var arr = [];
+  for(var m=7;m<=n;m++) arr.push(m);
+  for(var m2=1;m2<7;m2++) arr.push(m2);
+  return arr;
+}
+function hebLetters(num){
+  if(num===15) return 'טו';
+  if(num===16) return 'טז';
+  var map = [[400,'ת'],[300,'ש'],[200,'ר'],[100,'ק'],[90,'צ'],[80,'פ'],[70,'ע'],[60,'ס'],[50,'נ'],[40,'מ'],[30,'ל'],[20,'כ'],[10,'י'],[9,'ט'],[8,'ח'],[7,'ז'],[6,'ו'],[5,'ה'],[4,'ד'],[3,'ג'],[2,'ב'],[1,'א']];
+  var n = num, out = '';
+  for(var i=0;i<map.length;i++){ while(n>=map[i][0]){ out+=map[i][1]; n-=map[i][0]; } }
+  return out;
+}
+function withGershayim(letters){
+  if(letters.length===0) return '';
+  if(letters.length===1) return letters+"'";
+  return letters.slice(0,-1)+'"'+letters.slice(-1);
+}
+function hebrewNumeral(num){ return withGershayim(hebLetters(num)); }
+function hebrewYearStr(y){ return withGershayim(hebLetters(mod(y,1000))); }
+function todayHeb(){
+  var now = new Date();
+  return rd_to_hebrew(gregorian_to_rd(now.getFullYear(), now.getMonth()+1, now.getDate()));
+}
+function hebToRdObj(h){ return h ? hebrew_to_rd(h.y,h.m,h.d) : null; }
+function formatHebDate(h, withYear){
+  if(!h) return '—';
+  var s = hebrewNumeral(h.d) + ' ' + monthName(h.y, h.m);
+  if(withYear !== false) s += ' ' + hebrewYearStr(h.y);
+  return s;
+}
+
+function createHebDatePicker(container, initial, required){
+  container.innerHTML = '';
+  var dSel = document.createElement('select'); dSel.className='hd-day';
+  var mSel = document.createElement('select'); mSel.className='hd-month';
+  var yInput = document.createElement('input'); yInput.type='number'; yInput.className='hd-year'; yInput.placeholder='שנה עברית';
+  container.appendChild(dSel);
+  container.appendChild(mSel);
+  container.appendChild(yInput);
+
+  function rebuildMonths(year){
+    mSel.innerHTML = '';
+    if(!required){
+      var opt0 = document.createElement('option'); opt0.value=''; opt0.textContent='חודש';
+      mSel.appendChild(opt0);
+    }
+    var order = monthsOrderForYear(year || todayHeb().y);
+    order.forEach(function(m){
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = monthName(year || todayHeb().y, m);
+      mSel.appendChild(opt);
+    });
+  }
+  function rebuildDays(){
+    var y = parseInt(yInput.value) || todayHeb().y;
+    var m = parseInt(mSel.value);
+    var maxDay = m ? last_day_of_hebrew_month(y,m) : 30;
+    var cur = dSel.value;
+    dSel.innerHTML = '';
+    if(!required){
+      var opt0 = document.createElement('option'); opt0.value=''; opt0.textContent='יום';
+      dSel.appendChild(opt0);
+    }
+    for(var d=1;d<=maxDay;d++){
+      var opt = document.createElement('option');
+      opt.value = d; opt.textContent = hebrewNumeral(d);
+      dSel.appendChild(opt);
+    }
+    if(cur) dSel.value = cur;
+  }
+  yInput.addEventListener('input', function(){ rebuildMonths(parseInt(yInput.value)||todayHeb().y); rebuildDays(); });
+  mSel.addEventListener('change', rebuildDays);
+
+  var initVal = initial || (required ? todayHeb() : null);
+  rebuildMonths(initVal ? initVal.y : todayHeb().y);
+  if(initVal){ yInput.value = initVal.y; mSel.value = initVal.m; }
+  rebuildDays();
+  if(initVal){ dSel.value = initVal.d; }
+
+  container._read = function(){
+    var y = parseInt(yInput.value);
+    var m = parseInt(mSel.value);
+    var d = parseInt(dSel.value);
+    if(!y || !m || !d) return null;
+    return {y:y,m:m,d:d};
+  };
+}
+
+var DEFAULT_OCCASIONS = {
+  "שבת רגילה": ["כהן","לוי","שלישי","רביעי","חמישי","שישי","שביעי","מפטיר","הגבהה","גלילה","פתיחת ההיכל","הוצאת ספר תורה","הכנסת ספר תורה"],
+  "ראש חודש / חול המועד": ["כהן","לוי","שלישי","רביעי","מפטיר","הגבהה","גלילה","פתיחת ההיכל"],
+  "יום טוב (חג)": ["כהן","לוי","שלישי","רביעי","חמישי","מפטיר","הגבהה","גלילה","פתיחת ההיכל","הוצאת ספר תורה"],
+  "שני/חמישי, פורים, חנוכה, תענית": ["כהן","לוי","שלישי","הגבהה","גלילה"],
+  "שמחת תורה / שמיני עצרת": ["כהן","לוי","שלישי","רביעי","חמישי","שישי","שביעי","כל הנערים","חתן תורה","חתן בראשית","מפטיר","הגבהה","גלילה"],
+  "ימים נוראים": ["כהן","לוי","שלישי","רביעי","חמישי","שישי","שביעי","מפטיר","פתיחת ההיכל","תקיעת שופר / נעילה","הגבהה","גלילה"],
+  "שבת חתן / בר מצווה / יארצייט": ["כהן","לוי","שלישי","רביעי","חמישי","שישי","שביעי","מפטיר","מי שברך מיוחד","הגבהה","גלילה"]
+};
+var DEFAULT_PAYEES = ["קופת בית הכנסת"];
+var DEFAULT_CATEGORIES = [];
+
+var people = [], events = [], pledges = [];
+var occasionTypes = {}, payees = [], categories = [];
+var editingPersonId = null, editingEventId = null, editingPledgeId = null;
+var paymentFilter = 'all';
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+async function storeGet(key, fallback){
+  try{ var r = await window.storage.get(key); return r ? JSON.parse(r.value) : fallback; }
+  catch(e){ return fallback; }
+}
+async function storeSet(key, val){
+  try{ await window.storage.set(key, JSON.stringify(val)); }catch(e){ console.error('שגיאת שמירה', e); }
+}
+
+async function loadAll(){
+  people = await storeGet('people', []);
+  events = await storeGet('events', []);
+  pledges = await storeGet('pledges', []);
+  occasionTypes = await storeGet('occasionTypes', JSON.parse(JSON.stringify(DEFAULT_OCCASIONS)));
+  payees = await storeGet('payees', DEFAULT_PAYEES.slice());
+  categories = await storeGet('categories', DEFAULT_CATEGORIES.slice());
+
+  renderCategorySelect();
+  renderGuestOfSelect();
+  renderOccasionSelect();
+  renderPayeeSelects();
+  renderPledgePersonSelect();
+  renderOccasionFilterSelect();
+
+  createHebDatePicker(document.getElementById('p-birthday-picker'), null, false);
+  createHebDatePicker(document.getElementById('ev-date-picker'), todayHeb(), true);
+  createHebDatePicker(document.getElementById('pl-date-picker'), todayHeb(), true);
+
+  loadPreset(document.getElementById('ev-occasion').value);
+  renderPeople();
+  renderEventsTree();
+  renderPayments();
+  renderPledges();
+  renderOccasionSettings();
+  renderCategoriesSettings();
+  renderPayeesSettings();
+  renderReminders();
+}
+
+document.querySelectorAll('nav.tabs button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    ['people','events','payments','pledges','settings'].forEach(function(t){
+      document.getElementById('tab-'+t).classList.toggle('hidden', t !== btn.dataset.tab);
+    });
+  });
+});
+
+function badgeForStatus(s){
+  var cls = s==='כהן'?'cohen':(s==='לוי'?'levi':'israel');
+  return '<span class="badge '+cls+'">'+s+'</span>';
+}
+
+function renderCategorySelect(){
+  var sel = document.getElementById('p-category');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">ללא</option>';
+  categories.forEach(function(c){
+    var opt = document.createElement('option'); opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+  sel.value = cur;
+}
+
+function renderGuestOfSelect(){
+  var sel = document.getElementById('p-guestof');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">בחירת מארח...</option>';
+  people.filter(function(p){ return p.type==='קבוע'; }).forEach(function(p){
+    var opt = document.createElement('option'); opt.value = p.id; opt.textContent = fullName(p);
+    sel.appendChild(opt);
+  });
+  sel.value = cur;
+}
+
+function fullName(p){
+  if(!p) return '—';
+  return (p.lastName||'') + ' ' + (p.firstName||'');
+}
+
+document.getElementById('p-type').addEventListener('change', function(e){
+  document.getElementById('p-guestof-field').style.display = e.target.value === 'אורח' ? 'block' : 'none';
+});
+document.getElementById('p-guestof-field').style.display = 'none';
+
+document.getElementById('p-add-yahrzeit').addEventListener('click', function(){
+  addYahrzeitRow(null, '');
+});
+function addYahrzeitRow(hebDate, label){
+  var container = document.getElementById('p-yahrzeits-list');
+  var row = document.createElement('div');
+  row.className = 'yahrzeit-row';
+  var labelInput = document.createElement('input');
+  labelInput.type='text'; labelInput.className='yz-label'; labelInput.placeholder='לדוגמה: יארצייט אבא'; labelInput.style.maxWidth='200px'; labelInput.value = label||'';
+  var dateDiv = document.createElement('div');
+  dateDiv.className = 'heb-date yz-date';
+  var removeBtn = document.createElement('button');
+  removeBtn.type='button'; removeBtn.className='icon-btn'; removeBtn.textContent='✕';
+  removeBtn.addEventListener('click', function(){ row.remove(); });
+  row.appendChild(labelInput);
+  row.appendChild(dateDiv);
+  row.appendChild(removeBtn);
+  container.appendChild(row);
+  createHebDatePicker(dateDiv, hebDate, false);
+}
+
+document.getElementById('p-save-btn').addEventListener('click', async function(){
+  var lastName = document.getElementById('p-lastname').value.trim();
+  var firstName = document.getElementById('p-firstname').value.trim();
+  if(!firstName){ alert('יש להזין שם פרטי'); return; }
+  var type = document.getElementById('p-type').value;
+  var yahrzeits = Array.from(document.querySelectorAll('#p-yahrzeits-list .yahrzeit-row')).map(function(row){
+    return { label: row.querySelector('.yz-label').value.trim(), date: row.querySelector('.yz-date')._read() };
+  }).filter(function(y){ return y.label || y.date; });
+
+  var data = {
+    lastName: lastName, firstName: firstName,
+    father: document.getElementById('p-father').value.trim(),
+    status: document.getElementById('p-status').value,
+    category: document.getElementById('p-category').value,
+    type: type,
+    guestOfId: type==='אורח' ? document.getElementById('p-guestof').value : '',
+    children: document.getElementById('p-children').value,
+    birthday: document.getElementById('p-birthday-picker')._read(),
+    notes: document.getElementById('p-notes').value.trim(),
+    yahrzeits: yahrzeits
+  };
+
+  if(editingPersonId){
+    var idx = people.findIndex(function(p){ return p.id===editingPersonId; });
+    people[idx] = Object.assign({id:editingPersonId}, data);
+  } else {
+    data.id = uid();
+    people.push(data);
+  }
+  await storeSet('people', people);
+  resetPersonForm();
+  renderPeople();
+  renderGuestOfSelect();
+  renderPledgePersonSelect();
+  refreshCongregantSelects();
+  renderReminders();
+});
+
+function resetPersonForm(){
+  editingPersonId = null;
+  document.getElementById('p-lastname').value='';
+  document.getElementById('p-firstname').value='';
+  document.getElementById('p-father').value='';
+  document.getElementById('p-status').value='ישראל';
+  document.getElementById('p-category').value='';
+  document.getElementById('p-type').value='קבוע';
+  document.getElementById('p-guestof-field').style.display='none';
+  document.getElementById('p-children').value='';
+  document.getElementById('p-notes').value='';
+  document.getElementById('p-yahrzeits-list').innerHTML='';
+  createHebDatePicker(document.getElementById('p-birthday-picker'), null, false);
+  document.getElementById('people-form-title').textContent='הוספת מתפלל';
+  document.getElementById('p-save-btn').textContent='הוספת מתפלל';
+  document.getElementById('p-cancel-edit').classList.add('hidden');
+}
+document.getElementById('p-cancel-edit').addEventListener('click', resetPersonForm);
+
+function editPerson(id){
+  var p = people.find(function(x){ return x.id===id; });
+  if(!p) return;
+  editingPersonId = id;
+  document.getElementById('p-lastname').value = p.lastName||'';
+  document.getElementById('p-firstname').value = p.firstName||'';
+  document.getElementById('p-father').value = p.father||'';
+  document.getElementById('p-status').value = p.status;
+  document.getElementById('p-category').value = p.category||'';
+  document.getElementById('p-type').value = p.type;
+  document.getElementById('p-guestof-field').style.display = p.type==='אורח' ? 'block' : 'none';
+  renderGuestOfSelect();
+  document.getElementById('p-guestof').value = p.guestOfId||'';
+  document.getElementById('p-children').value = p.children||'';
+  document.getElementById('p-notes').value = p.notes||'';
+  createHebDatePicker(document.getElementById('p-birthday-picker'), p.birthday||null, false);
+  document.getElementById('p-yahrzeits-list').innerHTML='';
+  (p.yahrzeits||[]).forEach(function(y){ addYahrzeitRow(y.date, y.label); });
+  document.getElementById('people-form-title').textContent='עריכת מתפלל';
+  document.getElementById('p-save-btn').textContent='שמירת שינויים';
+  document.getElementById('p-cancel-edit').classList.remove('hidden');
+  document.getElementById('tab-people').scrollIntoView({behavior:'smooth'});
+}
+
+async function deletePerson(id){
+  if(!confirm('למחוק את המתפלל הזה?')) return;
+  people = people.filter(function(p){ return p.id!==id; });
+  await storeSet('people', people);
+  renderPeople();
+  renderGuestOfSelect();
+  refreshCongregantSelects();
+  renderReminders();
+}
+
+function lastAliyahDate(personId){
+  var best = null;
+  events.forEach(function(ev){
+    (ev.assignments||[]).forEach(function(a){
+      if(a.congregantId === personId && ev.hebDate){
+        if(!best || hebToRdObj(ev.hebDate) > hebToRdObj(best)) best = ev.hebDate;
+      }
+    });
+  });
+  return best;
+}
+
+function renderPeople(){
+  var el = document.getElementById('people-list');
+  var q = document.getElementById('people-search').value.trim().toLowerCase();
+  var list = people.filter(function(p){
+    if(!q) return true;
+    return (p.firstName+' '+p.lastName).toLowerCase().indexOf(q) !== -1;
+  });
+  if(list.length===0){ el.innerHTML = '<div class="empty-state">אין מתפללים תואמים.</div>'; return; }
+  var sorted = list.slice().sort(function(a,b){ return (a.lastName||'').localeCompare(b.lastName||''); });
+  var rows = sorted.map(function(p){
+    var guestTxt = '';
+    if(p.type==='אורח'){
+      var host = people.find(function(h){ return h.id===p.guestOfId; });
+      guestTxt = 'אורח' + (host ? (' של '+fullName(host)) : '');
+    } else { guestTxt = 'חבר קבוע'; }
+    var last = lastAliyahDate(p.id);
+    return '<tr class="'+(p.type==='אורח'?'guest-row':'')+'">'+
+      '<td>'+ (p.lastName||'') +' '+ (p.firstName||'') +'</td>'+
+      '<td>'+ (p.father||'—') +'</td>'+
+      '<td>'+ badgeForStatus(p.status) + (p.category ? ' <span class="badge cat">'+p.category+'</span>' : '') +'</td>'+
+      '<td>'+ guestTxt +'</td>'+
+      '<td>'+ (last ? formatHebDate(last) : 'ללא רישום') +'</td>'+
+      '<td style="white-space:nowrap;">'+
+        '<button class="icon-btn" onclick="openPersonCard(\''+p.id+'\')" title="כרטיס">🗎</button>'+
+        '<button class="icon-btn" onclick="editPerson(\''+p.id+'\')" title="עריכה">✎</button>'+
+        '<button class="icon-btn" onclick="deletePerson(\''+p.id+'\')" title="מחיקה">✕</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+  el.innerHTML = '<table><thead><tr><th>שם</th><th>שם האב</th><th>סטטוס</th><th>סוג</th><th>עלייה אחרונה</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+document.getElementById('people-search').addEventListener('input', renderPeople);
+
+function openPersonCard(id){
+  var p = people.find(function(x){ return x.id===id; });
+  if(!p) return;
+  var history = [];
+  events.forEach(function(ev){
+    (ev.assignments||[]).forEach(function(a){
+      if(a.congregantId===id) history.push({eventTitle: ev.title, hebDate: ev.hebDate, honorName: a.honorName, price: a.price, paid: a.paid});
+    });
+  });
+  history.sort(function(a,b){ return hebToRdObj(b.hebDate) - hebToRdObj(a.hebDate); });
+
+  var host = people.find(function(h){ return h.id===p.guestOfId; });
+  var root = document.getElementById('modal-root');
+  var html = '<div class="modal-overlay" id="person-modal-overlay">'+
+    '<div class="modal-box">'+
+    '<h2>'+fullName(p)+'</h2>'+
+    '<p class="small-note">'+badgeForStatus(p.status)+(p.category?' <span class="badge cat">'+p.category+'</span>':'')+' · '+(p.type==='אורח'?('אורח'+(host?(' של '+fullName(host)):'')):'חבר קבוע')+'</p>'+
+    '<div class="divider"></div>'+
+    '<div class="grid2">'+
+      '<div><label>יום הולדת</label><p>'+formatHebDate(p.birthday)+'</p></div>'+
+      '<div><label>מספר ילדים</label><p>'+(p.children||'—')+'</p></div>'+
+    '</div>'+
+    (p.notes ? '<div><label>הערות</label><p>'+p.notes+'</p></div>' : '')+
+    ((p.yahrzeits&&p.yahrzeits.length) ? '<div><label>יארצייטים</label>'+p.yahrzeits.map(function(y){ return '<p>'+(y.label||'יארצייט')+' — '+formatHebDate(y.date)+'</p>'; }).join('')+'</div>' : '')+
+    '<div class="divider"></div>'+
+    '<h3 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);">היסטוריית כיבודים</h3>'+
+    (history.length ? '<table><thead><tr><th>תאריך</th><th>אירוע</th><th>כיבוד</th><th>סכום</th></tr></thead><tbody>'+
+      history.map(function(h){ return '<tr><td>'+formatHebDate(h.hebDate)+'</td><td>'+h.eventTitle+'</td><td>'+h.honorName+'</td><td>'+(h.price?('₪'+h.price+(h.paid?'':' (לא שולם)')):'—')+'</td></tr>'; }).join('')+
+    '</tbody></table>' : '<div class="empty-state">אין עדיין היסטוריית כיבודים.</div>')+
+    '<div class="divider"></div>'+
+    '<button class="btn secondary" id="close-person-modal">סגירה</button>'+
+    '</div></div>';
+  root.innerHTML = html;
+  document.getElementById('close-person-modal').addEventListener('click', function(){ root.innerHTML=''; });
+  document.getElementById('person-modal-overlay').addEventListener('click', function(e){ if(e.target.id==='person-modal-overlay') root.innerHTML=''; });
+}
+
+function renderReminders(){
+  var el = document.getElementById('reminders-panel');
+  var today = todayHeb();
+  var todayRd = hebrew_to_rd(today.y, today.m, today.d);
+  var items = [];
+  people.forEach(function(p){
+    function checkDate(d, label){
+      if(!d) return;
+      [today.y, today.y+1].forEach(function(yr){
+        var mm = d.m, dd = d.d;
+        if(mm > hebrew_year_months(yr)) mm = hebrew_year_months(yr);
+        if(dd > last_day_of_hebrew_month(yr, mm)) dd = last_day_of_hebrew_month(yr, mm);
+        var rd = hebrew_to_rd(yr, mm, dd);
+        var diff = rd - todayRd;
+        if(diff >= 0 && diff <= 30){
+          items.push({name: fullName(p), label: label, diff: diff});
+        }
+      });
+    }
+    checkDate(p.birthday, 'יום הולדת');
+    (p.yahrzeits||[]).forEach(function(y){ checkDate(y.date, y.label||'יארצייט'); });
+  });
+  items.sort(function(a,b){ return a.diff-b.diff; });
+  if(items.length===0){ el.innerHTML=''; return; }
+  el.innerHTML = '<div class="reminders-box">' + items.map(function(i){
+    var when = i.diff===0 ? 'היום' : (i.diff===1 ? 'מחר' : ('בעוד '+i.diff+' ימים'));
+    return '<div><b>'+i.name+'</b> — '+i.label+' '+when+'</div>';
+  }).join('') + '</div>';
+}
+
+var occasionSelect = document.getElementById('ev-occasion');
+function renderOccasionSelect(){
+  var cur = occasionSelect.value;
+  occasionSelect.innerHTML = '';
+  Object.keys(occasionTypes).forEach(function(name){
+    var opt = document.createElement('option'); opt.value=name; opt.textContent=name;
+    occasionSelect.appendChild(opt);
+  });
+  if(cur && occasionTypes[cur]) occasionSelect.value = cur;
+}
+occasionSelect.addEventListener('change', function(){
+  if(!editingEventId) loadPreset(occasionSelect.value);
+});
+
+function honorRowTemplate(honorName, congregantId, price, paid, paidDate, paidTo){
+  var row = document.createElement('div');
+  row.className = 'honor-row';
+  var dateDiv = document.createElement('div');
+  var right = document.createElement('button');
+  right.type='button'; right.className='icon-btn remove-row'; right.textContent='✕';
+
+  var nameInput = document.createElement('input'); nameInput.type='text'; nameInput.className='h-name'; nameInput.placeholder='שם הכיבוד'; nameInput.value = honorName||'';
+  var congSel = document.createElement('select'); congSel.className='h-cong';
+  var priceInput = document.createElement('input'); priceInput.type='number'; priceInput.className='h-price'; priceInput.placeholder='מחיר ₪'; priceInput.value = price||'';
+  var paidLabel = document.createElement('label'); paidLabel.className='paid-toggle';
+  var paidCheck = document.createElement('input'); paidCheck.type='checkbox'; paidCheck.className='h-paid'; paidCheck.checked = !!paid;
+  paidLabel.appendChild(paidCheck); paidLabel.appendChild(document.createTextNode(' שולם'));
+  var paidToSel = document.createElement('select'); paidToSel.className='h-paidto';
+
+  row.appendChild(nameInput);
+  row.appendChild(congSel);
+  row.appendChild(priceInput);
+  row.appendChild(paidLabel);
+  row.appendChild(paidToSel);
+  row.appendChild(right);
+
+  fillCongregantSelect(congSel, congregantId);
+  fillPayeeSelect(paidToSel, paidTo);
+  right.addEventListener('click', function(){ row.remove(); });
+  return row;
+}
+
+function fillCongregantSelect(select, selectedId){
+  select.innerHTML = '<option value="">בחירת עולה...</option>';
+  var groups = {'כהן':[], 'לוי':[], 'ישראל':[]};
+  people.forEach(function(p){ groups[p.status].push(p); });
+  Object.keys(groups).forEach(function(g){
+    if(groups[g].length===0) return;
+    var og = document.createElement('optgroup'); og.label = g;
+    groups[g].forEach(function(p){
+      var opt = document.createElement('option'); opt.value = p.id;
+      opt.textContent = fullName(p) + (p.type==='אורח' ? ' (אורח)' : '');
+      og.appendChild(opt);
+    });
+    select.appendChild(og);
+  });
+  if(selectedId) select.value = selectedId;
+}
+
+function fillPayeeSelect(select, selected){
+  select.innerHTML = '';
+  payees.forEach(function(pay){
+    var opt = document.createElement('option'); opt.value=pay; opt.textContent=pay;
+    select.appendChild(opt);
+  });
+  if(selected) select.value = selected;
+}
+
+function refreshCongregantSelects(){
+  document.querySelectorAll('#honors-container .h-cong').forEach(function(sel){
+    var cur = sel.value; fillCongregantSelect(sel, cur);
+  });
+}
+
+function loadPreset(occasionName){
+  var container = document.getElementById('honors-container');
+  container.innerHTML = '';
+  (occasionTypes[occasionName]||[]).forEach(function(h){
+    container.appendChild(honorRowTemplate(h, '', '', false, null, ''));
+  });
+}
+
+document.getElementById('add-honor-row').addEventListener('click', function(){
+  document.getElementById('honors-container').appendChild(honorRowTemplate('', '', '', false, null, ''));
+});
+
+document.getElementById('save-event-btn').addEventListener('click', async function(){
+  var title = document.getElementById('ev-title').value.trim();
+  if(!title){ alert('יש להזין שם לאירוע'); return; }
+  var hebDate = document.getElementById('ev-date-picker')._read();
+  if(!hebDate){ alert('יש להזין תאריך עברי מלא'); return; }
+  var rows = Array.from(document.querySelectorAll('#honors-container .honor-row'));
+  var assignments = rows.map(function(r){
+    return {
+      id: uid(),
+      honorName: r.querySelector('.h-name').value.trim(),
+      congregantId: r.querySelector('.h-cong').value,
+      price: parseFloat(r.querySelector('.h-price').value) || 0,
+      paid: r.querySelector('.h-paid').checked,
+      paidDate: null,
+      paidTo: r.querySelector('.h-paidto').value
+    };
+  }).filter(function(a){ return a.honorName; });
+
+  if(editingEventId){
+    var ev = events.find(function(e){ return e.id===editingEventId; });
+    ev.title = title; ev.hebDate = hebDate; ev.occasion = occasionSelect.value; ev.assignments = assignments;
+  } else {
+    events.push({ id: uid(), title: title, hebDate: hebDate, occasion: occasionSelect.value, assignments: assignments });
+  }
+  await storeSet('events', events);
+  resetEventForm();
+  renderEventsTree();
+  renderPayments();
+  renderPeople();
+  renderReminders();
+});
+
+function resetEventForm(){
+  editingEventId = null;
+  document.getElementById('ev-title').value = '';
+  createHebDatePicker(document.getElementById('ev-date-picker'), todayHeb(), true);
+  loadPreset(occasionSelect.value);
+  document.getElementById('cancel-edit-btn').classList.add('hidden');
+  document.getElementById('save-event-btn').textContent = 'שמירת אירוע';
+  document.getElementById('event-form-title').textContent = 'אירוע חדש';
+}
+document.getElementById('cancel-edit-btn').addEventListener('click', resetEventForm);
+
+function renderOccasionFilterSelect(){
+  var sel = document.getElementById('events-occasion-filter');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">כל סוגי האירועים</option>';
+  Object.keys(occasionTypes).forEach(function(name){
+    var opt = document.createElement('option'); opt.value=name; opt.textContent=name;
+    sel.appendChild(opt);
+  });
+  sel.value = cur;
+}
+document.getElementById('events-search').addEventListener('input', renderEventsTree);
+document.getElementById('events-occasion-filter').addEventListener('change', renderEventsTree);
+document.getElementById('events-year-filter').addEventListener('input', renderEventsTree);
+
+function renderEventsTree(){
+  var el = document.getElementById('events-tree');
+  var q = document.getElementById('events-search').value.trim().toLowerCase();
+  var occFilter = document.getElementById('events-occasion-filter').value;
+  var yearFilter = document.getElementById('events-year-filter').value;
+
+  var list = events.filter(function(ev){
+    if(!ev.hebDate) return false;
+    if(q && ev.title.toLowerCase().indexOf(q)===-1) return false;
+    if(occFilter && ev.occasion!==occFilter) return false;
+    if(yearFilter && String(ev.hebDate.y)!==String(yearFilter)) return false;
+    return true;
+  });
+
+  if(list.length===0){ el.innerHTML = '<div class="empty-state">אין אירועים תואמים.</div>'; return; }
+
+  var byYear = {};
+  list.forEach(function(ev){
+    var y = ev.hebDate.y;
+    if(!byYear[y]) byYear[y] = {};
+    var m = ev.hebDate.m;
+    if(!byYear[y][m]) byYear[y][m] = [];
+    byYear[y][m].push(ev);
+  });
+
+  var years = Object.keys(byYear).map(Number).sort(function(a,b){ return b-a; });
+  el.innerHTML = years.map(function(y){
+    var months = Object.keys(byYear[y]).map(Number);
+    var count = months.reduce(function(s,m){ return s+byYear[y][m].length; },0);
+    var monthsHtml = months.sort(function(a,b){
+      var order = monthsOrderForYear(y);
+      return order.indexOf(a)-order.indexOf(b);
+    }).map(function(m){
+      var evs = byYear[y][m].slice().sort(function(a,b){ return hebToRdObj(b.hebDate)-hebToRdObj(a.hebDate); });
+      var cardsHtml = evs.map(function(ev){
+        var unpaidCount = (ev.assignments||[]).filter(function(a){ return a.price>0 && !a.paid; }).length;
+        return '<div class="event-card" onclick="editEvent(\''+ev.id+'\')">'+
+          '<div class="ev-title">'+ev.title+'</div>'+
+          '<div class="ev-sub">'+formatHebDate(ev.hebDate,false)+' · '+ev.occasion+' · '+(ev.assignments||[]).length+' כיבודים'+(unpaidCount?(' · '+unpaidCount+' חובות פתוחים'):'')+'</div>'+
+        '</div>';
+      }).join('');
+      return '<div class="month-header" onclick="this.nextElementSibling.classList.toggle(\'hidden\')">'+
+          '<span>'+monthName(y,m)+'</span><span>'+byYear[y][m].length+' אירועים</span>'+
+        '</div>'+
+        '<div class="month-body hidden">'+cardsHtml+'</div>';
+    }).join('');
+    return '<div class="year-header" onclick="this.nextElementSibling.classList.toggle(\'hidden\')">'+
+        '<span>שנת '+hebrewYearStr(y)+'</span><span>'+count+' אירועים</span>'+
+      '</div>'+
+      '<div class="hidden">'+monthsHtml+'</div>';
+  }).join('');
+}
+
+function editEvent(id){
+  var ev = events.find(function(e){ return e.id===id; });
+  if(!ev) return;
+  editingEventId = id;
+  document.getElementById('ev-title').value = ev.title;
+  createHebDatePicker(document.getElementById('ev-date-picker'), ev.hebDate, true);
+  occasionSelect.value = ev.occasion;
+  var container = document.getElementById('honors-container');
+  container.innerHTML = '';
+  ev.assignments.forEach(function(a){
+    container.appendChild(honorRowTemplate(a.honorName, a.congregantId, a.price, a.paid, a.paidDate, a.paidTo));
+  });
+  document.getElementById('cancel-edit-btn').classList.remove('hidden');
+  document.getElementById('save-event-btn').textContent = 'שמירת שינויים';
+  document.getElementById('event-form-title').textContent = 'עריכת אירוע';
+  document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelector('nav.tabs button[data-tab="events"]').classList.add('active');
+  ['people','events','payments','pledges','settings'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('hidden', t !== 'events');
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.querySelectorAll('.filter-row button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.filter-row button').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    paymentFilter = btn.dataset.filter;
+    renderPayments();
+  });
+});
+document.getElementById('payee-filter').addEventListener('change', renderPayments);
+
+function personName(id){
+  var p = people.find(function(x){ return x.id===id; });
+  return p ? fullName(p) : '—';
+}
+
+function renderPayeeSelects(){
+  var sel = document.getElementById('payee-filter');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">הכל</option>';
+  payees.forEach(function(pay){
+    var opt = document.createElement('option'); opt.value=pay; opt.textContent=pay;
+    sel.appendChild(opt);
+  });
+  sel.value = cur;
+  fillPayeeSelect(document.getElementById('pl-paidto'), null);
+}
+
+function renderPayments(){
+  var all = [];
+  events.forEach(function(ev){
+    (ev.assignments||[]).forEach(function(a){
+      if(a.price>0) all.push({eventId: ev.id, eventTitle: ev.title, hebDate: ev.hebDate, occasion: ev.occasion, assignment: a});
+    });
+  });
+  var payeeFilter = document.getElementById('payee-filter').value;
+
+  var unpaidSum = all.filter(function(a){ return !a.assignment.paid; }).reduce(function(s,a){ return s+a.assignment.price; },0);
+  var paidSum = all.filter(function(a){ return a.assignment.paid; }).reduce(function(s,a){ return s+a.assignment.price; },0);
+  document.getElementById('sum-unpaid').textContent = unpaidSum.toLocaleString();
+  document.getElementById('sum-paid').textContent = paidSum.toLocaleString();
+  document.getElementById('sum-count').textContent = all.length;
+
+  var filtered = all;
+  if(paymentFilter==='unpaid') filtered = filtered.filter(function(a){ return !a.assignment.paid; });
+  if(paymentFilter==='paid') filtered = filtered.filter(function(a){ return a.assignment.paid; });
+  if(payeeFilter) filtered = filtered.filter(function(a){ return a.assignment.paidTo===payeeFilter; });
+  filtered = filtered.slice().sort(function(a,b){ return hebToRdObj(b.hebDate)-hebToRdObj(a.hebDate); });
+
+  var el = document.getElementById('payments-list');
+  if(filtered.length===0){ el.innerHTML = '<div class="empty-state">אין רשומות תואמות.</div>'; return; }
+  var rows = filtered.map(function(a){
+    var asg = a.assignment;
+    return '<tr>'+
+      '<td>'+formatHebDate(a.hebDate,false)+'<br><span class="small-note">'+a.eventTitle+'</span></td>'+
+      '<td>'+asg.honorName+'</td>'+
+      '<td>'+personName(asg.congregantId)+'</td>'+
+      '<td>₪'+asg.price.toLocaleString()+'</td>'+
+      '<td><span class="badge '+(asg.paid?'paid':'unpaid')+'">'+(asg.paid?'שולם':'לא שולם')+'</span></td>'+
+      '<td>'+(asg.paid ? asg.paidTo : '—')+'</td>'+
+      '<td><button class="btn small '+(asg.paid?'secondary':'')+'" onclick="togglePaid(\''+a.eventId+'\',\''+asg.id+'\')">'+(asg.paid?'סמן כלא שולם':'סמן כשולם')+'</button></td>'+
+    '</tr>';
+  }).join('');
+  el.innerHTML = '<table><thead><tr><th>תאריך / אירוע</th><th>כיבוד</th><th>עולה</th><th>סכום</th><th>סטטוס</th><th>שולם למי</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+async function togglePaid(eventId, assignmentId){
+  var ev = events.find(function(e){ return e.id===eventId; });
+  var a = ev.assignments.find(function(x){ return x.id===assignmentId; });
+  a.paid = !a.paid;
+  await storeSet('events', events);
+  renderPayments();
+  renderEventsTree();
+}
+
+function renderPledgePersonSelect(){
+  var sel = document.getElementById('pl-person');
+  sel.innerHTML = '<option value="">בחירת מתפלל...</option>';
+  people.forEach(function(p){
+    var opt = document.createElement('option'); opt.value=p.id; opt.textContent=fullName(p);
+    sel.appendChild(opt);
+  });
+}
+
+document.getElementById('pl-save-btn').addEventListener('click', async function(){
+  var desc = document.getElementById('pl-desc').value.trim();
+  if(!desc){ alert('יש להזין תיאור'); return; }
+  var hebDate = document.getElementById('pl-date-picker')._read();
+  var data = {
+    desc: desc,
+    personId: document.getElementById('pl-person').value,
+    amount: parseFloat(document.getElementById('pl-amount').value) || 0,
+    hebDate: hebDate,
+    paid: document.getElementById('pl-paid').checked,
+    paidTo: document.getElementById('pl-paidto').value
+  };
+  if(editingPledgeId){
+    var idx = pledges.findIndex(function(p){ return p.id===editingPledgeId; });
+    pledges[idx] = Object.assign({id:editingPledgeId}, data);
+  } else {
+    data.id = uid();
+    pledges.push(data);
+  }
+  await storeSet('pledges', pledges);
+  resetPledgeForm();
+  renderPledges();
+});
+
+function resetPledgeForm(){
+  editingPledgeId = null;
+  document.getElementById('pl-desc').value='';
+  document.getElementById('pl-person').value='';
+  document.getElementById('pl-amount').value='';
+  createHebDatePicker(document.getElementById('pl-date-picker'), todayHeb(), true);
+  document.getElementById('pl-paid').checked=false;
+  document.getElementById('pledge-form-title').textContent='התחייבות / נדבה חדשה';
+  document.getElementById('pl-save-btn').textContent='שמירה';
+  document.getElementById('pl-cancel-edit').classList.add('hidden');
+}
+document.getElementById('pl-cancel-edit').addEventListener('click', resetPledgeForm);
+
+function editPledge(id){
+  var p = pledges.find(function(x){ return x.id===id; });
+  if(!p) return;
+  editingPledgeId = id;
+  document.getElementById('pl-desc').value = p.desc;
+  document.getElementById('pl-person').value = p.personId||'';
+  document.getElementById('pl-amount').value = p.amount||'';
+  createHebDatePicker(document.getElementById('pl-date-picker'), p.hebDate, true);
+  document.getElementById('pl-paid').checked = !!p.paid;
+  fillPayeeSelect(document.getElementById('pl-paidto'), p.paidTo);
+  document.getElementById('pledge-form-title').textContent='עריכת התחייבות';
+  document.getElementById('pl-save-btn').textContent='שמירת שינויים';
+  document.getElementById('pl-cancel-edit').classList.remove('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+async function deletePledge(id){
+  if(!confirm('למחוק את ההתחייבות הזו?')) return;
+  pledges = pledges.filter(function(p){ return p.id!==id; });
+  await storeSet('pledges', pledges);
+  renderPledges();
+}
+
+async function togglePledgePaid(id){
+  var p = pledges.find(function(x){ return x.id===id; });
+  p.paid = !p.paid;
+  await storeSet('pledges', pledges);
+  renderPledges();
+}
+
+function renderPledges(){
+  var el = document.getElementById('pledges-list');
+  var unpaidSum = pledges.filter(function(p){ return !p.paid; }).reduce(function(s,p){ return s+p.amount; },0);
+  var paidSum = pledges.filter(function(p){ return p.paid; }).reduce(function(s,p){ return s+p.amount; },0);
+  document.getElementById('pl-sum-unpaid').textContent = unpaidSum.toLocaleString();
+  document.getElementById('pl-sum-paid').textContent = paidSum.toLocaleString();
+  if(pledges.length===0){ el.innerHTML='<div class="empty-state">אין עדיין התחייבויות רשומות.</div>'; return; }
+  var sorted = pledges.slice().sort(function(a,b){ return hebToRdObj(b.hebDate)-hebToRdObj(a.hebDate); });
+  var rows = sorted.map(function(p){
+    return '<tr>'+
+      '<td>'+formatHebDate(p.hebDate,false)+'</td>'+
+      '<td>'+p.desc+'</td>'+
+      '<td>'+(p.personId?personName(p.personId):'—')+'</td>'+
+      '<td>'+(p.amount?('₪'+p.amount.toLocaleString()):'—')+'</td>'+
+      '<td><span class="badge '+(p.paid?'paid':'unpaid')+'">'+(p.paid?'שולם':'לא שולם')+'</span></td>'+
+      '<td>'+(p.paid?(p.paidTo||'—'):'—')+'</td>'+
+      '<td style="white-space:nowrap;">'+
+        '<button class="btn small '+(p.paid?'secondary':'')+'" onclick="togglePledgePaid(\''+p.id+'\')">'+(p.paid?'לא שולם':'סמן כשולם')+'</button> '+
+        '<button class="icon-btn" onclick="editPledge(\''+p.id+'\')">✎</button>'+
+        '<button class="icon-btn" onclick="deletePledge(\''+p.id+'\')">✕</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+  el.innerHTML = '<table><thead><tr><th>תאריך</th><th>תיאור</th><th>מי התחייב</th><th>סכום</th><th>סטטוס</th><th>שולם למי</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function renderOccasionSettings(){
+  var el = document.getElementById('occasion-settings');
+  el.innerHTML = Object.keys(occasionTypes).map(function(name){
+    return '<div class="settings-block">'+
+      '<h3>'+name+'</h3>'+
+      '<input type="text" class="occ-honors-input" data-name="'+name+'" value="'+occasionTypes[name].join(', ')+'">'+
+      '<div style="display:flex;gap:8px;margin-top:8px;">'+
+        '<button class="btn secondary small" onclick="saveOccasionHonors(\''+name+'\')">שמירת שינויים</button>'+
+        '<button class="btn danger small" onclick="deleteOccasion(\''+name+'\')">מחיקת סוג אירוע</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+async function saveOccasionHonors(name){
+  var input = document.querySelector('.occ-honors-input[data-name="'+name+'"]');
+  occasionTypes[name] = input.value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  await storeSet('occasionTypes', occasionTypes);
+  renderOccasionSelect();
+  alert('נשמר.');
+}
+async function deleteOccasion(name){
+  if(!confirm('למחוק את סוג האירוע "'+name+'"?')) return;
+  delete occasionTypes[name];
+  await storeSet('occasionTypes', occasionTypes);
+  renderOccasionSettings();
+  renderOccasionSelect();
+  renderOccasionFilterSelect();
+}
+document.getElementById('add-occasion-btn').addEventListener('click', async function(){
+  var name = document.getElementById('new-occasion-name').value.trim();
+  var honors = document.getElementById('new-occasion-honors').value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  if(!name){ alert('יש להזין שם לסוג האירוע'); return; }
+  occasionTypes[name] = honors;
+  await storeSet('occasionTypes', occasionTypes);
+  document.getElementById('new-occasion-name').value='';
+  document.getElementById('new-occasion-honors').value='';
+  renderOccasionSettings();
+  renderOccasionSelect();
+  renderOccasionFilterSelect();
+});
+
+function renderCategoriesSettings(){
+  var el = document.getElementById('categories-list');
+  if(categories.length===0){ el.innerHTML = '<span class="small-note">אין קטגוריות מוגדרות עדיין.</span>'; return; }
+  el.innerHTML = categories.map(function(c){
+    return '<div class="tag-chip">'+c+'<button onclick="deleteCategory(\''+c+'\')">✕</button></div>';
+  }).join('');
+}
+document.getElementById('add-category-btn').addEventListener('click', async function(){
+  var val = document.getElementById('new-category').value.trim();
+  if(!val) return;
+  if(categories.indexOf(val)===-1) categories.push(val);
+  await storeSet('categories', categories);
+  document.getElementById('new-category').value='';
+  renderCategoriesSettings();
+  renderCategorySelect();
+});
+async function deleteCategory(c){
+  categories = categories.filter(function(x){ return x!==c; });
+  await storeSet('categories', categories);
+  renderCategoriesSettings();
+  renderCategorySelect();
+}
+
+function renderPayeesSettings(){
+  var el = document.getElementById('payees-list');
+  if(payees.length===0){ el.innerHTML = '<span class="small-note">אין מקבלי תשלום מוגדרים עדיין.</span>'; return; }
+  el.innerHTML = payees.map(function(p){
+    return '<div class="tag-chip">'+p+'<button onclick="deletePayee(\''+p+'\')">✕</button></div>';
+  }).join('');
+}
+document.getElementById('add-payee-btn').addEventListener('click', async function(){
+  var val = document.getElementById('new-payee').value.trim();
+  if(!val) return;
+  if(payees.indexOf(val)===-1) payees.push(val);
+  await storeSet('payees', payees);
+  document.getElementById('new-payee').value='';
+  renderPayeesSettings();
+  renderPayeeSelects();
+});
+async function deletePayee(p){
+  payees = payees.filter(function(x){ return x!==p; });
+  await storeSet('payees', payees);
+  renderPayeesSettings();
+  renderPayeeSelects();
+}
+
+document.getElementById('export-btn').addEventListener('click', function(){
+  var data = { people: people, events: events, pledges: pledges, occasionTypes: occasionTypes, payees: payees, categories: categories };
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'גיבוי_ניהול_עליות.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+document.getElementById('import-file').addEventListener('change', function(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = async function(ev){
+    try{
+      var data = JSON.parse(ev.target.result);
+      if(!confirm('פעולה זו תחליף את כל הנתונים הקיימים בקובץ שנבחר. להמשיך?')) return;
+      people = data.people||[]; events = data.events||[]; pledges = data.pledges||[];
+      occasionTypes = data.occasionTypes||JSON.parse(JSON.stringify(DEFAULT_OCCASIONS));
+      payees = data.payees||DEFAULT_PAYEES.slice(); categories = data.categories||[];
+      await storeSet('people', people); await storeSet('events', events); await storeSet('pledges', pledges);
+      await storeSet('occasionTypes', occasionTypes); await storeSet('payees', payees); await storeSet('categories', categories);
+      await loadAll();
+      alert('הייבוא הסתיים בהצלחה.');
+    }catch(err){ alert('שגיאה בקריאת הקובץ.'); }
+  };
+  reader.readAsText(file);
+});
+
+loadAll();
+</script>
+</body>
+</html>
