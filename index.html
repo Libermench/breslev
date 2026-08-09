@@ -1,203 +1,3 @@
-
-Claude finished the response
-Welcome, אלי! I’m Claude.
-Bring me anything—a tough problem, a half-formed idea, something you need to write. We’ll figure it out together.
-
-Where do you want to start?
-
-
-gemini-code-1786302667854.html
-html
-
-תקרא את הקוד ומצא את הטעות
-
-
-בדק קוד מורכב וזיהה בעיות אחסון וביטחון
-בדק קוד מורכב וזיהה בעיות אחסון וביטחון
-מצאתי את הטעות המרכזית בקובץ, וזו בעיה משמעותית מאוד לגבי שמירת הנתונים:
-
-הטעות: הנתונים לא באמת נשמרים
-בתחילת הסקריפט (שורה 478) מוגדר firebaseConfig שלם עם apiKey, projectId וכו':
-
-javascript
-const firebaseConfig = {
-  apiKey: "AIzaSyAwFFe1BcQD3ZFxUb_fXUfSK0bqV5vrO9g",
-  authDomain: "breslev-1ec71.firebaseapp.com",
-  ...
-};
-אבל המשתנה הזה אף פעם לא בשימוש בפועל. אין:
-
-טעינה של Firebase SDK (<script src="...firebase...">)
-קריאה ל־firebase.initializeApp(firebaseConfig)
-אף שימוש ב־Firestore/Realtime Database
-במקום זאת, כל השמירה בפועל עוברת דרך window.storage (שורות 660, 664):
-
-javascript
-async function storeGet(key, fallback){
-  try{ var r = await window.storage.get(key); return r ? JSON.parse(r.value) : fallback; }
-  catch(e){ return fallback; }
-}
-async function storeSet(key, val){
-  try{ await window.storage.set(key, JSON.stringify(val)); }catch(e){ console.error('שגיאת שמירה', e); }
-}
-הבעיה בפועל: window.storage הוא לא API סטנדרטי של דפדפן — הוא קיים רק בסביבות ריצה ספציפיות (כמו Artifacts של Claude). אם פותחים את הקובץ הזה כקובץ HTML רגיל בדפדפן (למשל דאבל-קליק ופתיחה ב־Chrome), window.storage פשוט לא קיים.
-
-מכיוון שהקוד עטוף ב־try/catch, השגיאה נבלעת בשקט:
-
-storeGet תמיד יחזיר את ה־fallback (רשימה ריקה)
-storeSet יכשל בשקט (רק console.error, בלי שום התראה למשתמש)
-התוצאה: האפליקציה תיראה כאילו היא עובדת מצוין — אפשר להוסיף מתפללים, אירועים, כיבודים — אבל שום דבר לא נשמר בפועל. ברגע שרוענים את הדף, כל הנתונים נעלמים, בלי שום הודעת שגיאה שתסביר למה.
-
-זה קונפליקט קלאסי: הקוד "מתחיל" עם תשתית של Firebase אבל בפועל "משתמש" ב־API אחר לגמרי שלא קיים בדפדפן רגיל, ולכן לא באמת שומר כלום.
-
-איך לתקן — יש שתי אפשרויות:
-
-לחבר את Firebase בפועל (לטעון את ה־SDK, לאתחל אותו, ולהחליף את storeGet/storeSet לקרוא ל־Firestore).
-או להשתמש ב־localStorage הרגיל של הדפדפן (הכי פשוט אם רוצים שהקובץ יעבוד עצמאית כ־HTML רגיל, בלי שרת).
-רוצה שאתקן את זה בפועל (למשל אעבור ל־localStorage כדי שהקובץ יעבוד מיד בכל דפדפן, כולל גיבוי/שחזור שכבר קיים באפליקציה)?
-
-עלית על הבעייה
-אני רוצה שהנתונים ישמרו בfirebase
-תוכל לעשות לי את זה?
-(אתה מעדיף את הקובץ המקורי + הקוד שfirebase נתנו לי ותכניס את זה מחדש במקום המתאים?)
-
-
-Check exact lines around firebaseConfig and storeGet/storeSet in the working copy
-Check exact lines around firebaseConfig and storeGet/storeSet in the working copy
-לא צריך את הקוד הנוסף — יש לי כבר את ה־firebaseConfig המלא בקובץ, וזה כל מה שצריך כדי לחבר Firestore (מסד הנתונים של Firebase שהכי מתאים לסוג הנתונים כאן). אני אכניס את זה ישירות לקובץ המקורי.
-
-לפני שאני מתחיל, שים לב לדבר אחד חשוב: אחרי שאני אסיים, יהיה עליך להפעיל Firestore בקונסולת Firebase (אם עוד לא הפעלת) ולהגדיר כללי גישה (Security Rules) שמאפשרים קריאה/כתיבה. אני אצרף בסוף גם את כללי הגישה המומלצים למצב פשוט (משתמש יחיד/גבאי).
-
-בוא נתחיל:
-
-
-Locate storeGet/storeSet in working copy
-Locate storeGet/storeSet in working copy
-עכשיו אבצע שני עדכונים: (1) טעינת ה־SDK של Firebase ואתחולו, (2) החלפת storeGet/storeSet כך שיעבדו מול Firestore במקום window.storage.
-
-
-Edited 2 files, ran a command
-Edited 2 files, ran a command
-התיקון תקין תחבירית ומוכן. הנה מה ששוניתי בקובץ:
-
-1. טעינת ה-SDK של Firebase — הוספתי שני תגי <script> לפני הסקריפט הראשי, שטוענים את Firebase App ו-Firestore (גרסת "compat", שלא דורשת שינוי ל-ES modules ולא שוברת את כל פונקציות ה-onclick הקיימות בקוד):
-
-html
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-2. אתחול האפליקציה, מיד אחרי ה-firebaseConfig הקיים:
-
-javascript
-firebase.initializeApp(firebaseConfig);
-var db = firebase.firestore();
-3. storeGet/storeSet עכשיו כותבים וקוראים מ-Firestore במקום מ-window.storage שלא היה קיים:
-
-javascript
-async function storeGet(key, fallback){
-  try{
-    var docSnap = await db.collection('appData').doc(key).get();
-    return docSnap.exists ? docSnap.data().value : fallback;
-  }catch(e){ console.error('שגיאת טעינה מ-Firebase', e); return fallback; }
-}
-async function storeSet(key, val){
-  try{ await db.collection('appData').doc(key).set({ value: val }); }
-  catch(e){ console.error('שגיאת שמירה ב-Firebase', e); alert('שגיאה בשמירת הנתונים ל-Firebase...'); }
-}
-עכשיו, במקום 6 קריאות window.storage שלא היה קיים, יש 6 מסמכים בקולקציה appData ב-Firestore (people, events, pledges, occasionTypes, payees, categories) — ומה שחשוב: הוספתי גם התראה (alert) אם השמירה נכשלת, כדי שלא יקרה שוב מצב של "אובדן נתונים בשקט".
-
-מה שאתה חייב לעשות בצד של Firebase Console (אחרת זה עדיין לא יעבוד):
-להפעיל Firestore — בפרויקט breslev-1ec71, תחת Build → Firestore Database → Create database (אם עוד לא קיים).
-להגדיר Security Rules שמאפשרות קריאה/כתיבה. למצב פשוט (משתמש יחיד, בלי התחברות/Auth), בטאב Rules ב-Firestore:
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
-⚠️ שים לב: הכלל הזה פתוח לגמרי — כל מי שמכיר את ה-projectId יכול לקרוא/לכתוב. זה בסדר לכלי פנימי של גבאי בודד, אבל אם בעתיד תרצה הגנה טובה יותר (למשל התחברות עם Firebase Authentication), תגיד לי ואני אתאים את זה.
-
-
-Presented file
-Presented file
-רוצה שאעדכן גם קצת יותר את הקוד — למשל, מסך "טוען..." בזמן שהנתונים נטענים מ-Firebase (כרגע יש רגע קצר שהדף ריק עד שהנתונים מגיעים), או שזה מספיק לך כרגע?
-
-
-App
-Code · HTML 
-1786305203811_image.png
-איפה בדיוק אני מגדיר?
-
-רואה בצילום המסך — אתה כבר בדיוק במקום הנכון (Cloud Firestore Database), ומסד הנתונים כבר קיים ("Your database is ready to go. Just add data").
-
-מה שחסר זה רק ללחוץ על הטאב "Rules" שנמצא ממש למעלה, ליד "Data":
-
-Data | Rules | Indexes | Disaster Recovery | Usage | Query Insights
-זה בשורה שמתחת לכותרת "Database", נראה בצילום שלך בערך בקואורדינטות (363, 261).
-
-מה לעשות שם:
-לחץ על Rules.
-יופיע עורך טקסט עם חוקים קיימים (כנראה משהו כמו allow read, write: if false; — ברירת המחדל שחוסמת הכל).
-תמחק את מה שיש ותדביק את זה במקום:
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
-לחץ על Publish (הכפתור הכחול שיופיע למעלה מימין באזור העריכה).
-זהו — אחרי זה האפליקציה שלך תוכל לכתוב ולקרוא מהמסד. תרצה שאזכיר לך שוב אחרי זה לבדוק שהשמירה עובדת בפועל בקובץ?
-
-1786305257614_image.png
-רואה את הבעיה — יש כפילות של השורה rules_version = '2'; (שורות 1 ו-2 זהות), וזה מה שגורם לשגיאה.
-
-פשוט תמחק את שורה 2 (העותק הכפול), כך שיישאר:
-
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
-אחרי המחיקה תלחץ שוב על Publish.
-
-1786305285685_image.png
-מעולה — הפרסום הצליח! ה-"Today • 10:54 PM" בהיסטוריה מראה שהחוקים פורסמו בהצלחה.
-
-האזהרה האדומה ("Your security rules are defined as public...") היא רק התראת אזהרה של Firebase, לא שגיאה — היא רק מזכירה לך שכרגע כל אחד עם ה-projectId יכול לגשת לנתונים (בדיוק כמו שהסברתי קודם). זה בסדר גמור לשלב הזה, אפשר להתעלם ממנה.
-
-עכשיו כל התשתית מוכנה בצד Firebase. הצעד הבא:
-
-
-
-Claude works directly with your codebase
-
-Let Claude edit files, run commands, and ship changes from the desktop app, your terminal, or your IDE.
-
-מה תרצה לעשות עכשיו?
-
-1
-לבדוק שהשמירה עובדת בקובץ
-⏎
-
-2
-להוסיף מסך טעינה בזמן חיבור ל-Firebase
-
-3
-שני הדברים
-Something else
-
-
-
-
-
-
-App · HTML
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -469,7 +269,7 @@ tr.guest-row{background:var(--terra-light);}
 </head>
 <body>
 <div class="wrap">
- 
+
 <header class="top">
   <div>
     <div class="title">ניהול עליות וכיבודים</div>
@@ -477,7 +277,7 @@ tr.guest-row{background:var(--terra-light);}
   </div>
   <div class="ornament"></div>
 </header>
- 
+
 <nav class="tabs">
   <button data-tab="people" class="active">קהל</button>
   <button data-tab="events">אירועים ועליות</button>
@@ -485,10 +285,10 @@ tr.guest-row{background:var(--terra-light);}
   <button data-tab="pledges">התחייבויות</button>
   <button data-tab="settings">הגדרות</button>
 </nav>
- 
+
 <div id="tab-people">
   <div id="reminders-panel"></div>
- 
+
   <section class="panel">
     <h2 class="panel-title" id="people-form-title">הוספת מתפלל</h2>
     <div class="grid4">
@@ -513,7 +313,7 @@ tr.guest-row{background:var(--terra-light);}
       </div>
       <div class="field"><label>מספר ילדים</label><input type="number" id="p-children" min="0" placeholder="לדוגמה: 3"></div>
     </div>
- 
+
     <div class="grid2">
       <div class="field">
         <label>יום הולדת (עברי, אופציונלי)</label>
@@ -524,27 +324,27 @@ tr.guest-row{background:var(--terra-light);}
         <input type="text" id="p-notes" placeholder="הערות חופשיות">
       </div>
     </div>
- 
+
     <div class="field">
       <label>יארצייטים</label>
       <div id="p-yahrzeits-list"></div>
       <button class="btn secondary small" id="p-add-yahrzeit" type="button">+ הוספת יארצייט</button>
     </div>
- 
+
     <div class="divider"></div>
     <div style="display:flex;gap:10px;">
       <button class="btn" id="p-save-btn">הוספת מתפלל</button>
       <button class="btn danger hidden" id="p-cancel-edit">ביטול עריכה</button>
     </div>
   </section>
- 
+
   <section class="panel">
     <h2 class="panel-title">רשימת המתפללים</h2>
     <div class="field"><input type="text" id="people-search" placeholder="חיפוש לפי שם או שם משפחה..."></div>
     <div id="people-list"></div>
   </section>
 </div>
- 
+
 <div id="tab-events" class="hidden">
   <section class="panel">
     <h2 class="panel-title" id="event-form-title">אירוע חדש</h2>
@@ -564,7 +364,7 @@ tr.guest-row{background:var(--terra-light);}
       <button class="btn danger hidden" id="cancel-edit-btn">ביטול עריכה</button>
     </div>
   </section>
- 
+
   <section class="panel">
     <h2 class="panel-title">אירועים שמורים</h2>
     <div class="grid3" style="margin-bottom:10px;">
@@ -577,7 +377,7 @@ tr.guest-row{background:var(--terra-light);}
     <div id="events-tree"></div>
   </section>
 </div>
- 
+
 <div id="tab-payments" class="hidden">
   <section class="panel">
     <div class="summary-bar">
@@ -597,7 +397,7 @@ tr.guest-row{background:var(--terra-light);}
     <div id="payments-list"></div>
   </section>
 </div>
- 
+
 <div id="tab-pledges" class="hidden">
   <section class="panel">
     <h2 class="panel-title" id="pledge-form-title">התחייבות / נדבה חדשה</h2>
@@ -616,7 +416,7 @@ tr.guest-row{background:var(--terra-light);}
       <button class="btn danger hidden" id="pl-cancel-edit">ביטול עריכה</button>
     </div>
   </section>
- 
+
   <section class="panel">
     <h2 class="panel-title">רשימת התחייבויות</h2>
     <div class="summary-bar">
@@ -626,7 +426,7 @@ tr.guest-row{background:var(--terra-light);}
     <div id="pledges-list"></div>
   </section>
 </div>
- 
+
 <div id="tab-settings" class="hidden">
   <section class="panel">
     <h2 class="panel-title">סוגי אירועים וכיבודי ברירת מחדל</h2>
@@ -638,7 +438,7 @@ tr.guest-row{background:var(--terra-light);}
     </div>
     <button class="btn secondary" id="add-occasion-btn">הוספת סוג אירוע</button>
   </section>
- 
+
   <section class="panel">
     <h2 class="panel-title">קטגוריות מתפללים</h2>
     <div class="tag-list" id="categories-list"></div>
@@ -647,7 +447,7 @@ tr.guest-row{background:var(--terra-light);}
       <button class="btn secondary small" id="add-category-btn">הוספה</button>
     </div>
   </section>
- 
+
   <section class="panel">
     <h2 class="panel-title">מקבלי תשלום</h2>
     <div class="tag-list" id="payees-list"></div>
@@ -656,7 +456,7 @@ tr.guest-row{background:var(--terra-light);}
       <button class="btn secondary small" id="add-payee-btn">הוספה</button>
     </div>
   </section>
- 
+
   <section class="panel">
     <h2 class="panel-title">גיבוי ושחזור</h2>
     <p class="small-note">ייצוא כל הנתונים לקובץ, לשמירה מחוץ למערכת או להעברה למחשב אחר.</p>
@@ -669,11 +469,11 @@ tr.guest-row{background:var(--terra-light);}
     </div>
   </section>
 </div>
- 
+
 </div>
- 
+
 <div id="modal-root"></div>
- 
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
@@ -687,7 +487,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
- 
+
 function mod(a,b){ return a - b*Math.floor(a/b); }
 function hebrew_leap(year){ return mod(year*7+1,19) < 7; }
 function hebrew_year_months(year){ return hebrew_leap(year) ? 13 : 12; }
@@ -743,7 +543,7 @@ function gregorian_to_rd(y,m,d){
   var jdn = d + Math.floor((153*m2+2)/5) + 365*y2 + Math.floor(y2/4) - Math.floor(y2/100) + Math.floor(y2/400) - 32045;
   return jdn - 1721425;
 }
- 
+
 var MONTH_NAMES_REG = {1:'ניסן',2:'אייר',3:'סיוון',4:'תמוז',5:'אב',6:'אלול',7:'תשרי',8:'חשוון',9:'כסלו',10:'טבת',11:'שבט',12:'אדר'};
 var MONTH_NAMES_LEAP = {1:'ניסן',2:'אייר',3:'סיוון',4:'תמוז',5:'אב',6:'אלול',7:'תשרי',8:'חשוון',9:'כסלו',10:'טבת',11:'שבט',12:"אדר א'",13:"אדר ב'"};
 function monthName(year, month){
@@ -782,7 +582,7 @@ function formatHebDate(h, withYear){
   if(withYear !== false) s += ' ' + hebrewYearStr(h.y);
   return s;
 }
- 
+
 function createHebDatePicker(container, initial, required){
   container.innerHTML = '';
   var dSel = document.createElement('select'); dSel.className='hd-day';
@@ -791,7 +591,7 @@ function createHebDatePicker(container, initial, required){
   container.appendChild(dSel);
   container.appendChild(mSel);
   container.appendChild(yInput);
- 
+
   function rebuildMonths(year){
     mSel.innerHTML = '';
     if(!required){
@@ -825,13 +625,13 @@ function createHebDatePicker(container, initial, required){
   }
   yInput.addEventListener('input', function(){ rebuildMonths(parseInt(yInput.value)||todayHeb().y); rebuildDays(); });
   mSel.addEventListener('change', rebuildDays);
- 
+
   var initVal = initial || (required ? todayHeb() : null);
   rebuildMonths(initVal ? initVal.y : todayHeb().y);
   if(initVal){ yInput.value = initVal.y; mSel.value = initVal.m; }
   rebuildDays();
   if(initVal){ dSel.value = initVal.d; }
- 
+
   container._read = function(){
     var y = parseInt(yInput.value);
     var m = parseInt(mSel.value);
@@ -840,7 +640,7 @@ function createHebDatePicker(container, initial, required){
     return {y:y,m:m,d:d};
   };
 }
- 
+
 var DEFAULT_OCCASIONS = {
   "שבת רגילה": ["כהן","לוי","שלישי","רביעי","חמישי","שישי","שביעי","מפטיר","הגבהה","גלילה","פתיחת ההיכל","הוצאת ספר תורה","הכנסת ספר תורה"],
   "ראש חודש / חול המועד": ["כהן","לוי","שלישי","רביעי","מפטיר","הגבהה","גלילה","פתיחת ההיכל"],
@@ -852,14 +652,14 @@ var DEFAULT_OCCASIONS = {
 };
 var DEFAULT_PAYEES = ["קופת בית הכנסת"];
 var DEFAULT_CATEGORIES = [];
- 
+
 var people = [], events = [], pledges = [];
 var occasionTypes = {}, payees = [], categories = [];
 var editingPersonId = null, editingEventId = null, editingPledgeId = null;
 var paymentFilter = 'all';
- 
+
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
- 
+
 async function storeGet(key, fallback){
   try{
     var docSnap = await db.collection('appData').doc(key).get();
@@ -870,7 +670,7 @@ async function storeSet(key, val){
   try{ await db.collection('appData').doc(key).set({ value: val }); }
   catch(e){ console.error('שגיאת שמירה ב-Firebase', e); alert('שגיאה בשמירת הנתונים ל-Firebase. בדוק חיבור לאינטרנט ואת הרשאות הגישה (Security Rules).'); }
 }
- 
+
 async function loadAll(){
   people = await storeGet('people', []);
   events = await storeGet('events', []);
@@ -878,18 +678,18 @@ async function loadAll(){
   occasionTypes = await storeGet('occasionTypes', JSON.parse(JSON.stringify(DEFAULT_OCCASIONS)));
   payees = await storeGet('payees', DEFAULT_PAYEES.slice());
   categories = await storeGet('categories', DEFAULT_CATEGORIES.slice());
- 
+
   renderCategorySelect();
   renderGuestOfSelect();
   renderOccasionSelect();
   renderPayeeSelects();
   renderPledgePersonSelect();
   renderOccasionFilterSelect();
- 
+
   createHebDatePicker(document.getElementById('p-birthday-picker'), null, false);
   createHebDatePicker(document.getElementById('ev-date-picker'), todayHeb(), true);
   createHebDatePicker(document.getElementById('pl-date-picker'), todayHeb(), true);
- 
+
   loadPreset(document.getElementById('ev-occasion').value);
   renderPeople();
   renderEventsTree();
@@ -900,7 +700,7 @@ async function loadAll(){
   renderPayeesSettings();
   renderReminders();
 }
- 
+
 document.querySelectorAll('nav.tabs button').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('active'); });
@@ -910,12 +710,12 @@ document.querySelectorAll('nav.tabs button').forEach(function(btn){
     });
   });
 });
- 
+
 function badgeForStatus(s){
   var cls = s==='כהן'?'cohen':(s==='לוי'?'levi':'israel');
   return '<span class="badge '+cls+'">'+s+'</span>';
 }
- 
+
 function renderCategorySelect(){
   var sel = document.getElementById('p-category');
   var cur = sel.value;
@@ -926,7 +726,7 @@ function renderCategorySelect(){
   });
   sel.value = cur;
 }
- 
+
 function renderGuestOfSelect(){
   var sel = document.getElementById('p-guestof');
   var cur = sel.value;
@@ -937,17 +737,17 @@ function renderGuestOfSelect(){
   });
   sel.value = cur;
 }
- 
+
 function fullName(p){
   if(!p) return '—';
   return (p.lastName||'') + ' ' + (p.firstName||'');
 }
- 
+
 document.getElementById('p-type').addEventListener('change', function(e){
   document.getElementById('p-guestof-field').style.display = e.target.value === 'אורח' ? 'block' : 'none';
 });
 document.getElementById('p-guestof-field').style.display = 'none';
- 
+
 document.getElementById('p-add-yahrzeit').addEventListener('click', function(){
   addYahrzeitRow(null, '');
 });
@@ -968,7 +768,7 @@ function addYahrzeitRow(hebDate, label){
   container.appendChild(row);
   createHebDatePicker(dateDiv, hebDate, false);
 }
- 
+
 document.getElementById('p-save-btn').addEventListener('click', async function(){
   var lastName = document.getElementById('p-lastname').value.trim();
   var firstName = document.getElementById('p-firstname').value.trim();
@@ -977,7 +777,7 @@ document.getElementById('p-save-btn').addEventListener('click', async function()
   var yahrzeits = Array.from(document.querySelectorAll('#p-yahrzeits-list .yahrzeit-row')).map(function(row){
     return { label: row.querySelector('.yz-label').value.trim(), date: row.querySelector('.yz-date')._read() };
   }).filter(function(y){ return y.label || y.date; });
- 
+
   var data = {
     lastName: lastName, firstName: firstName,
     father: document.getElementById('p-father').value.trim(),
@@ -990,7 +790,7 @@ document.getElementById('p-save-btn').addEventListener('click', async function()
     notes: document.getElementById('p-notes').value.trim(),
     yahrzeits: yahrzeits
   };
- 
+
   if(editingPersonId){
     var idx = people.findIndex(function(p){ return p.id===editingPersonId; });
     people[idx] = Object.assign({id:editingPersonId}, data);
@@ -1006,7 +806,7 @@ document.getElementById('p-save-btn').addEventListener('click', async function()
   refreshCongregantSelects();
   renderReminders();
 });
- 
+
 function resetPersonForm(){
   editingPersonId = null;
   document.getElementById('p-lastname').value='';
@@ -1025,7 +825,7 @@ function resetPersonForm(){
   document.getElementById('p-cancel-edit').classList.add('hidden');
 }
 document.getElementById('p-cancel-edit').addEventListener('click', resetPersonForm);
- 
+
 function editPerson(id){
   var p = people.find(function(x){ return x.id===id; });
   if(!p) return;
@@ -1049,7 +849,7 @@ function editPerson(id){
   document.getElementById('p-cancel-edit').classList.remove('hidden');
   document.getElementById('tab-people').scrollIntoView({behavior:'smooth'});
 }
- 
+
 async function deletePerson(id){
   if(!confirm('למחוק את המתפלל הזה?')) return;
   people = people.filter(function(p){ return p.id!==id; });
@@ -1059,7 +859,7 @@ async function deletePerson(id){
   refreshCongregantSelects();
   renderReminders();
 }
- 
+
 function lastAliyahDate(personId){
   var best = null;
   events.forEach(function(ev){
@@ -1071,7 +871,7 @@ function lastAliyahDate(personId){
   });
   return best;
 }
- 
+
 function renderPeople(){
   var el = document.getElementById('people-list');
   var q = document.getElementById('people-search').value.trim().toLowerCase();
@@ -1104,7 +904,7 @@ function renderPeople(){
   el.innerHTML = '<table><thead><tr><th>שם</th><th>שם האב</th><th>סטטוס</th><th>סוג</th><th>עלייה אחרונה</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 document.getElementById('people-search').addEventListener('input', renderPeople);
- 
+
 function openPersonCard(id){
   var p = people.find(function(x){ return x.id===id; });
   if(!p) return;
@@ -1115,7 +915,7 @@ function openPersonCard(id){
     });
   });
   history.sort(function(a,b){ return hebToRdObj(b.hebDate) - hebToRdObj(a.hebDate); });
- 
+
   var host = people.find(function(h){ return h.id===p.guestOfId; });
   var root = document.getElementById('modal-root');
   var html = '<div class="modal-overlay" id="person-modal-overlay">'+
@@ -1141,7 +941,7 @@ function openPersonCard(id){
   document.getElementById('close-person-modal').addEventListener('click', function(){ root.innerHTML=''; });
   document.getElementById('person-modal-overlay').addEventListener('click', function(e){ if(e.target.id==='person-modal-overlay') root.innerHTML=''; });
 }
- 
+
 function renderReminders(){
   var el = document.getElementById('reminders-panel');
   var today = todayHeb();
@@ -1171,7 +971,7 @@ function renderReminders(){
     return '<div><b>'+i.name+'</b> — '+i.label+' '+when+'</div>';
   }).join('') + '</div>';
 }
- 
+
 var occasionSelect = document.getElementById('ev-occasion');
 function renderOccasionSelect(){
   var cur = occasionSelect.value;
@@ -1185,14 +985,14 @@ function renderOccasionSelect(){
 occasionSelect.addEventListener('change', function(){
   if(!editingEventId) loadPreset(occasionSelect.value);
 });
- 
+
 function honorRowTemplate(honorName, congregantId, price, paid, paidDate, paidTo){
   var row = document.createElement('div');
   row.className = 'honor-row';
   var dateDiv = document.createElement('div');
   var right = document.createElement('button');
   right.type='button'; right.className='icon-btn remove-row'; right.textContent='✕';
- 
+
   var nameInput = document.createElement('input'); nameInput.type='text'; nameInput.className='h-name'; nameInput.placeholder='שם הכיבוד'; nameInput.value = honorName||'';
   var congSel = document.createElement('select'); congSel.className='h-cong';
   var priceInput = document.createElement('input'); priceInput.type='number'; priceInput.className='h-price'; priceInput.placeholder='מחיר ₪'; priceInput.value = price||'';
@@ -1200,20 +1000,20 @@ function honorRowTemplate(honorName, congregantId, price, paid, paidDate, paidTo
   var paidCheck = document.createElement('input'); paidCheck.type='checkbox'; paidCheck.className='h-paid'; paidCheck.checked = !!paid;
   paidLabel.appendChild(paidCheck); paidLabel.appendChild(document.createTextNode(' שולם'));
   var paidToSel = document.createElement('select'); paidToSel.className='h-paidto';
- 
+
   row.appendChild(nameInput);
   row.appendChild(congSel);
   row.appendChild(priceInput);
   row.appendChild(paidLabel);
   row.appendChild(paidToSel);
   row.appendChild(right);
- 
+
   fillCongregantSelect(congSel, congregantId);
   fillPayeeSelect(paidToSel, paidTo);
   right.addEventListener('click', function(){ row.remove(); });
   return row;
 }
- 
+
 function fillCongregantSelect(select, selectedId){
   select.innerHTML = '<option value="">בחירת עולה...</option>';
   var groups = {'כהן':[], 'לוי':[], 'ישראל':[]};
@@ -1230,7 +1030,7 @@ function fillCongregantSelect(select, selectedId){
   });
   if(selectedId) select.value = selectedId;
 }
- 
+
 function fillPayeeSelect(select, selected){
   select.innerHTML = '';
   payees.forEach(function(pay){
@@ -1239,13 +1039,13 @@ function fillPayeeSelect(select, selected){
   });
   if(selected) select.value = selected;
 }
- 
+
 function refreshCongregantSelects(){
   document.querySelectorAll('#honors-container .h-cong').forEach(function(sel){
     var cur = sel.value; fillCongregantSelect(sel, cur);
   });
 }
- 
+
 function loadPreset(occasionName){
   var container = document.getElementById('honors-container');
   container.innerHTML = '';
@@ -1253,11 +1053,11 @@ function loadPreset(occasionName){
     container.appendChild(honorRowTemplate(h, '', '', false, null, ''));
   });
 }
- 
+
 document.getElementById('add-honor-row').addEventListener('click', function(){
   document.getElementById('honors-container').appendChild(honorRowTemplate('', '', '', false, null, ''));
 });
- 
+
 document.getElementById('save-event-btn').addEventListener('click', async function(){
   var title = document.getElementById('ev-title').value.trim();
   if(!title){ alert('יש להזין שם לאירוע'); return; }
@@ -1275,7 +1075,7 @@ document.getElementById('save-event-btn').addEventListener('click', async functi
       paidTo: r.querySelector('.h-paidto').value
     };
   }).filter(function(a){ return a.honorName; });
- 
+
   if(editingEventId){
     var ev = events.find(function(e){ return e.id===editingEventId; });
     ev.title = title; ev.hebDate = hebDate; ev.occasion = occasionSelect.value; ev.assignments = assignments;
@@ -1289,7 +1089,7 @@ document.getElementById('save-event-btn').addEventListener('click', async functi
   renderPeople();
   renderReminders();
 });
- 
+
 function resetEventForm(){
   editingEventId = null;
   document.getElementById('ev-title').value = '';
@@ -1300,7 +1100,7 @@ function resetEventForm(){
   document.getElementById('event-form-title').textContent = 'אירוע חדש';
 }
 document.getElementById('cancel-edit-btn').addEventListener('click', resetEventForm);
- 
+
 function renderOccasionFilterSelect(){
   var sel = document.getElementById('events-occasion-filter');
   var cur = sel.value;
@@ -1314,13 +1114,13 @@ function renderOccasionFilterSelect(){
 document.getElementById('events-search').addEventListener('input', renderEventsTree);
 document.getElementById('events-occasion-filter').addEventListener('change', renderEventsTree);
 document.getElementById('events-year-filter').addEventListener('input', renderEventsTree);
- 
+
 function renderEventsTree(){
   var el = document.getElementById('events-tree');
   var q = document.getElementById('events-search').value.trim().toLowerCase();
   var occFilter = document.getElementById('events-occasion-filter').value;
   var yearFilter = document.getElementById('events-year-filter').value;
- 
+
   var list = events.filter(function(ev){
     if(!ev.hebDate) return false;
     if(q && ev.title.toLowerCase().indexOf(q)===-1) return false;
@@ -1328,9 +1128,9 @@ function renderEventsTree(){
     if(yearFilter && String(ev.hebDate.y)!==String(yearFilter)) return false;
     return true;
   });
- 
+
   if(list.length===0){ el.innerHTML = '<div class="empty-state">אין אירועים תואמים.</div>'; return; }
- 
+
   var byYear = {};
   list.forEach(function(ev){
     var y = ev.hebDate.y;
@@ -1339,7 +1139,7 @@ function renderEventsTree(){
     if(!byYear[y][m]) byYear[y][m] = [];
     byYear[y][m].push(ev);
   });
- 
+
   var years = Object.keys(byYear).map(Number).sort(function(a,b){ return b-a; });
   el.innerHTML = years.map(function(y){
     var months = Object.keys(byYear[y]).map(Number);
@@ -1367,7 +1167,7 @@ function renderEventsTree(){
       '<div class="hidden">'+monthsHtml+'</div>';
   }).join('');
 }
- 
+
 function editEvent(id){
   var ev = events.find(function(e){ return e.id===id; });
   if(!ev) return;
@@ -1390,7 +1190,7 @@ function editEvent(id){
   });
   window.scrollTo({top:0, behavior:'smooth'});
 }
- 
+
 document.querySelectorAll('.filter-row button').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('.filter-row button').forEach(function(b){ b.classList.remove('active'); });
@@ -1400,12 +1200,12 @@ document.querySelectorAll('.filter-row button').forEach(function(btn){
   });
 });
 document.getElementById('payee-filter').addEventListener('change', renderPayments);
- 
+
 function personName(id){
   var p = people.find(function(x){ return x.id===id; });
   return p ? fullName(p) : '—';
 }
- 
+
 function renderPayeeSelects(){
   var sel = document.getElementById('payee-filter');
   var cur = sel.value;
@@ -1417,7 +1217,7 @@ function renderPayeeSelects(){
   sel.value = cur;
   fillPayeeSelect(document.getElementById('pl-paidto'), null);
 }
- 
+
 function renderPayments(){
   var all = [];
   events.forEach(function(ev){
@@ -1426,19 +1226,19 @@ function renderPayments(){
     });
   });
   var payeeFilter = document.getElementById('payee-filter').value;
- 
+
   var unpaidSum = all.filter(function(a){ return !a.assignment.paid; }).reduce(function(s,a){ return s+a.assignment.price; },0);
   var paidSum = all.filter(function(a){ return a.assignment.paid; }).reduce(function(s,a){ return s+a.assignment.price; },0);
   document.getElementById('sum-unpaid').textContent = unpaidSum.toLocaleString();
   document.getElementById('sum-paid').textContent = paidSum.toLocaleString();
   document.getElementById('sum-count').textContent = all.length;
- 
+
   var filtered = all;
   if(paymentFilter==='unpaid') filtered = filtered.filter(function(a){ return !a.assignment.paid; });
   if(paymentFilter==='paid') filtered = filtered.filter(function(a){ return a.assignment.paid; });
   if(payeeFilter) filtered = filtered.filter(function(a){ return a.assignment.paidTo===payeeFilter; });
   filtered = filtered.slice().sort(function(a,b){ return hebToRdObj(b.hebDate)-hebToRdObj(a.hebDate); });
- 
+
   var el = document.getElementById('payments-list');
   if(filtered.length===0){ el.innerHTML = '<div class="empty-state">אין רשומות תואמות.</div>'; return; }
   var rows = filtered.map(function(a){
@@ -1455,7 +1255,7 @@ function renderPayments(){
   }).join('');
   el.innerHTML = '<table><thead><tr><th>תאריך / אירוע</th><th>כיבוד</th><th>עולה</th><th>סכום</th><th>סטטוס</th><th>שולם למי</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
- 
+
 async function togglePaid(eventId, assignmentId){
   var ev = events.find(function(e){ return e.id===eventId; });
   var a = ev.assignments.find(function(x){ return x.id===assignmentId; });
@@ -1464,7 +1264,7 @@ async function togglePaid(eventId, assignmentId){
   renderPayments();
   renderEventsTree();
 }
- 
+
 function renderPledgePersonSelect(){
   var sel = document.getElementById('pl-person');
   sel.innerHTML = '<option value="">בחירת מתפלל...</option>';
@@ -1473,7 +1273,7 @@ function renderPledgePersonSelect(){
     sel.appendChild(opt);
   });
 }
- 
+
 document.getElementById('pl-save-btn').addEventListener('click', async function(){
   var desc = document.getElementById('pl-desc').value.trim();
   if(!desc){ alert('יש להזין תיאור'); return; }
@@ -1497,7 +1297,7 @@ document.getElementById('pl-save-btn').addEventListener('click', async function(
   resetPledgeForm();
   renderPledges();
 });
- 
+
 function resetPledgeForm(){
   editingPledgeId = null;
   document.getElementById('pl-desc').value='';
@@ -1510,7 +1310,7 @@ function resetPledgeForm(){
   document.getElementById('pl-cancel-edit').classList.add('hidden');
 }
 document.getElementById('pl-cancel-edit').addEventListener('click', resetPledgeForm);
- 
+
 function editPledge(id){
   var p = pledges.find(function(x){ return x.id===id; });
   if(!p) return;
@@ -1526,21 +1326,21 @@ function editPledge(id){
   document.getElementById('pl-cancel-edit').classList.remove('hidden');
   window.scrollTo({top:0, behavior:'smooth'});
 }
- 
+
 async function deletePledge(id){
   if(!confirm('למחוק את ההתחייבות הזו?')) return;
   pledges = pledges.filter(function(p){ return p.id!==id; });
   await storeSet('pledges', pledges);
   renderPledges();
 }
- 
+
 async function togglePledgePaid(id){
   var p = pledges.find(function(x){ return x.id===id; });
   p.paid = !p.paid;
   await storeSet('pledges', pledges);
   renderPledges();
 }
- 
+
 function renderPledges(){
   var el = document.getElementById('pledges-list');
   var unpaidSum = pledges.filter(function(p){ return !p.paid; }).reduce(function(s,p){ return s+p.amount; },0);
@@ -1566,7 +1366,7 @@ function renderPledges(){
   }).join('');
   el.innerHTML = '<table><thead><tr><th>תאריך</th><th>תיאור</th><th>מי התחייב</th><th>סכום</th><th>סטטוס</th><th>שולם למי</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
- 
+
 function renderOccasionSettings(){
   var el = document.getElementById('occasion-settings');
   el.innerHTML = Object.keys(occasionTypes).map(function(name){
@@ -1607,7 +1407,7 @@ document.getElementById('add-occasion-btn').addEventListener('click', async func
   renderOccasionSelect();
   renderOccasionFilterSelect();
 });
- 
+
 function renderCategoriesSettings(){
   var el = document.getElementById('categories-list');
   if(categories.length===0){ el.innerHTML = '<span class="small-note">אין קטגוריות מוגדרות עדיין.</span>'; return; }
@@ -1630,7 +1430,7 @@ async function deleteCategory(c){
   renderCategoriesSettings();
   renderCategorySelect();
 }
- 
+
 function renderPayeesSettings(){
   var el = document.getElementById('payees-list');
   if(payees.length===0){ el.innerHTML = '<span class="small-note">אין מקבלי תשלום מוגדרים עדיין.</span>'; return; }
@@ -1653,7 +1453,7 @@ async function deletePayee(p){
   renderPayeesSettings();
   renderPayeeSelects();
 }
- 
+
 document.getElementById('export-btn').addEventListener('click', function(){
   var data = { people: people, events: events, pledges: pledges, occasionTypes: occasionTypes, payees: payees, categories: categories };
   var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
@@ -1682,9 +1482,8 @@ document.getElementById('import-file').addEventListener('change', function(e){
   };
   reader.readAsText(file);
 });
- 
+
 loadAll();
 </script>
 </body>
 </html>
-
