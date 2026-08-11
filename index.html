@@ -50,6 +50,21 @@ table{width:100%;border-collapse:collapse;font-size:13px;}
 th{text-align:right;color:var(--ink-soft);font-weight:500;font-size:12px;padding:8px 6px;border-bottom:2px solid var(--gold-light);}
 td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle;}
 tr.guest-row{background:var(--terra-light);}
+table.compact-list{width:100%;border-collapse:collapse;}
+table.compact-list th{font-size:12px;color:var(--ink-soft);font-weight:500;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line);}
+table.compact-list td{padding:9px 4px;border-bottom:1px solid var(--gold-lighter);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+table.compact-list td.actions-cell{white-space:nowrap;}
+table.compact-list td.actions-cell .icon-btn{padding:2px 4px;}
+@media (max-width:700px){
+  table.compact-list{table-layout:fixed;}
+  table.compact-list th, table.compact-list td{padding:7px 3px;font-size:12px;}
+  table.compact-list th:nth-child(1), table.compact-list td:nth-child(1),
+  table.compact-list th:nth-child(2), table.compact-list td:nth-child(2){width:22%;}
+  table.compact-list th:nth-child(3), table.compact-list td:nth-child(3){width:20%;}
+  table.compact-list th:nth-child(4), table.compact-list td:nth-child(4){width:20%;}
+  table.compact-list th:nth-child(5), table.compact-list td:nth-child(5){width:16%;}
+  table.compact-list td.actions-cell .icon-btn{font-size:13px;padding:1px 2px;}
+}
 @media (max-width:700px){
   table.responsive thead{display:none;}
   table.responsive, table.responsive tbody, table.responsive tr, table.responsive td{display:block;width:100%;}
@@ -705,25 +720,24 @@ function renderPeople(){
 
   var rows = withLast.map(function(row){
     var p = row.p, last = row.last;
-    var linkTxt = '';
+    var typeTxt = typeName(p.typeId);
     if(typeRequiresLink(p.typeId)){
       var host = people.find(function(h){ return h.id===p.linkedPersonId; });
-      linkTxt = typeName(p.typeId) + (host ? (' של '+fullName(host)) : '');
-    } else { linkTxt = typeName(p.typeId); }
+      typeTxt += host ? (' של '+fullName(host)) : '';
+    }
     return '<tr class="'+(typeRequiresLink(p.typeId)?'guest-row':'')+'">'+
-      '<td data-label="שם">'+ (p.lastName||'') +' '+ (p.firstName||'') +'</td>'+
-      '<td data-label="שם האב">'+ (p.father||'—') +'</td>'+
-      '<td data-label="סטטוס">'+ badgeForStatus(p.status) +'</td>'+
-      '<td data-label="סוג">'+ linkTxt +'</td>'+
-      '<td data-label="עלייה אחרונה">'+ (last ? formatHebDate(last) : 'ללא רישום') +'</td>'+
-      '<td data-label="פעולות" style="white-space:nowrap;">'+
+      '<td data-label="שם משפחה">'+ (p.lastName||'—') +'</td>'+
+      '<td data-label="שם פרטי">'+ (p.firstName||'—') +'</td>'+
+      '<td data-label="סוג">'+ typeTxt +'</td>'+
+      '<td data-label="עלייה אחרונה">'+ (last ? formatHebDate(last,false) : 'ללא רישום') +'</td>'+
+      '<td data-label="פעולות" class="actions-cell">'+
         '<button class="icon-btn" onclick="openPersonCard(\''+p.id+'\')" title="כרטיס">🗎</button>'+
         '<button class="icon-btn" onclick="editPerson(\''+p.id+'\')" title="עריכה">✎</button>'+
         '<button class="icon-btn" onclick="deletePerson(\''+p.id+'\')" title="מחיקה">✕</button>'+
       '</td>'+
     '</tr>';
   }).join('');
-  el.innerHTML = '<table class="responsive"><thead><tr><th>שם</th><th>שם האב</th><th>סטטוס</th><th>סוג</th><th>עלייה אחרונה</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+  el.innerHTML = '<table class="compact-list"><thead><tr><th>שם משפחה</th><th>שם פרטי</th><th>סוג</th><th>עלייה אחרונה</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
 function openPersonCard(id){
@@ -867,6 +881,11 @@ function honorRowTemplate(honorName, congregantId, price, paid, paidTo){
 
   fillCongregantSelect(congSel, congregantId);
   fillPayeeSelect(paidToSel, paidTo);
+  paidToSel.disabled = !paidCheck.checked;
+  paidCheck.addEventListener('change', function(){
+    paidToSel.disabled = !paidCheck.checked;
+    if(!paidCheck.checked) paidToSel.value = '';
+  });
   right.addEventListener('click', function(){ row.remove(); });
   return row;
 }
@@ -888,12 +907,12 @@ function fillCongregantSelect(select, selectedId){
   if(selectedId) select.value = selectedId;
 }
 function fillPayeeSelect(select, selected){
-  select.innerHTML = '';
+  select.innerHTML = '<option value="">— לא נבחר —</option>';
   payees.forEach(function(pay){
     var opt = document.createElement('option'); opt.value=pay; opt.textContent=pay;
     select.appendChild(opt);
   });
-  if(selected) select.value = selected;
+  select.value = selected || '';
 }
 function refreshCongregantSelects(){
   document.querySelectorAll('#honors-container .h-cong').forEach(function(sel){
@@ -988,7 +1007,11 @@ function renderEventsTree(){
         return '<div class="event-card">'+
           '<div class="ev-title" onclick="editEvent(\''+ev.id+'\')">'+ev.title+'</div>'+
           '<div class="ev-sub">'+formatHebDate(ev.hebDate,false)+' · '+(ev.assignments||[]).length+' כיבודים'+(unpaidCount?(' · '+unpaidCount+' חובות פתוחים'):'')+'</div>'+
-          '<div class="ev-actions"><button class="btn secondary small" onclick="openEventReport(\''+ev.id+'\')">דוח אירוע</button></div>'+
+          '<div class="ev-actions">'+
+            '<button class="btn secondary small" onclick="openEventReport(\''+ev.id+'\')">דוח אירוע</button>'+
+            '<button class="btn secondary small" onclick="editEvent(\''+ev.id+'\')">✎ עריכה</button>'+
+            '<button class="btn danger small" onclick="deleteEvent(\''+ev.id+'\')">✕ מחיקה</button>'+
+          '</div>'+
         '</div>';
       }).join('');
       return '<div class="month-header" onclick="this.nextElementSibling.classList.toggle(\'hidden\')">'+
@@ -1001,6 +1024,20 @@ function renderEventsTree(){
       '</div>'+
       '<div class="hidden">'+monthsHtml+'</div>';
   }).join('');
+}
+
+async function deleteEvent(id){
+  var ev = events.find(function(e){ return e.id===id; });
+  if(!ev) return;
+  if(!confirm('למחוק את האירוע "'+ev.title+'"? כל הכיבודים והתשלומים שלו יימחקו גם הם.')) return;
+  events = events.filter(function(e){ return e.id!==id; });
+  await storeSet('events', events);
+  if(editingEventId===id) resetEventForm();
+  renderEventsTree();
+  renderPayments();
+  renderPeople();
+  renderReminders();
+  renderHonorSuggestions();
 }
 
 function editEvent(id){
@@ -1046,7 +1083,10 @@ function renderPayeeSelects(){
     sel.appendChild(opt);
   });
   sel.value = cur;
-  fillPayeeSelect(document.getElementById('pl-paidto'), null);
+  var plPaidTo = document.getElementById('pl-paidto');
+  var plPrev = plPaidTo.value;
+  fillPayeeSelect(plPaidTo, plPrev);
+  plPaidTo.disabled = !document.getElementById('pl-paid').checked;
 }
 
 function allSoldHonors(){
@@ -1086,7 +1126,11 @@ function renderPayments(){
       '<td data-label="סכום">₪'+asg.price.toLocaleString()+'</td>'+
       '<td data-label="סטטוס"><span class="badge '+(asg.paid?'paid':'unpaid')+'">'+(asg.paid?'שולם':'לא שולם')+'</span></td>'+
       '<td data-label="שולם למי">'+(asg.paid ? asg.paidTo : '—')+'</td>'+
-      '<td data-label="פעולה"><button class="btn small '+(asg.paid?'secondary':'')+'" onclick="togglePaid(\''+a.eventId+'\',\''+asg.id+'\')">'+(asg.paid?'סמן כלא שולם':'סמן כשולם')+'</button></td>'+
+      '<td data-label="פעולה" style="white-space:nowrap;">'+
+        '<button class="btn small '+(asg.paid?'secondary':'')+'" onclick="togglePaid(\''+a.eventId+'\',\''+asg.id+'\')">'+(asg.paid?'סמן כלא שולם':'סמן כשולם')+'</button> '+
+        '<button class="icon-btn" onclick="editPaymentRecord(\''+a.eventId+'\',\''+asg.id+'\')">✎</button>'+
+        '<button class="icon-btn" onclick="deletePaymentRecord(\''+a.eventId+'\',\''+asg.id+'\')">✕</button>'+
+      '</td>'+
     '</tr>';
   }).join('');
   el.innerHTML = '<table class="responsive"><thead><tr><th>תאריך / אירוע</th><th>כיבוד</th><th>עולה</th><th>סכום</th><th>סטטוס</th><th>שולם למי</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
@@ -1101,6 +1145,65 @@ async function togglePaid(eventId, assignmentId){
   renderEventsTree();
 }
 
+function editPaymentRecord(eventId, assignmentId){
+  var ev = events.find(function(e){ return e.id===eventId; });
+  if(!ev) return;
+  var a = ev.assignments.find(function(x){ return x.id===assignmentId; });
+  if(!a) return;
+  var root = document.getElementById('modal-root');
+  root.innerHTML = '<div class="modal-overlay" id="edit-payment-overlay">'+
+    '<div class="modal-box">'+
+    '<h2>עריכת תשלום</h2>'+
+    '<p class="small-note">'+ev.title+' · '+a.honorName+' · '+personName(a.congregantId)+'</p>'+
+    '<div class="grid2">'+
+      '<div class="field"><label>סכום</label><input type="number" id="ep-price" value="'+(a.price||'')+'"></div>'+
+      '<div class="field"><label class="paid-toggle" style="font-size:14px;"><input type="checkbox" id="ep-paid" '+(a.paid?'checked':'')+'> שולם</label></div>'+
+    '</div>'+
+    '<div class="field"><label>שולם למי</label><select id="ep-paidto"></select></div>'+
+    '<div class="divider"></div>'+
+    '<div style="display:flex;gap:8px;">'+
+      '<button class="btn small" id="ep-save-btn">שמירה</button>'+
+      '<button class="btn secondary small" id="ep-cancel-btn">ביטול</button>'+
+    '</div>'+
+    '</div></div>';
+  var paidToSel = document.getElementById('ep-paidto');
+  fillPayeeSelect(paidToSel, a.paidTo);
+  paidToSel.disabled = !a.paid;
+  document.getElementById('ep-paid').addEventListener('change', function(){
+    paidToSel.disabled = !this.checked;
+    if(!this.checked) paidToSel.value = '';
+  });
+  document.getElementById('ep-save-btn').addEventListener('click', async function(){
+    a.price = parseFloat(document.getElementById('ep-price').value) || 0;
+    a.paid = document.getElementById('ep-paid').checked;
+    a.paidTo = paidToSel.value;
+    await storeSet('events', events);
+    root.innerHTML = '';
+    renderPayments();
+    renderEventsTree();
+    renderPeople();
+  });
+  document.getElementById('ep-cancel-btn').addEventListener('click', function(){ root.innerHTML=''; });
+  document.getElementById('edit-payment-overlay').addEventListener('click', function(e){ if(e.target.id==='edit-payment-overlay') root.innerHTML=''; });
+}
+
+async function deletePaymentRecord(eventId, assignmentId){
+  var ev = events.find(function(e){ return e.id===eventId; });
+  if(!ev) return;
+  var a = ev.assignments.find(function(x){ return x.id===assignmentId; });
+  if(!confirm('למחוק את רשומת התשלום עבור "'+(a?a.honorName:'')+'"?')) return;
+  ev.assignments = ev.assignments.filter(function(x){ return x.id!==assignmentId; });
+  await storeSet('events', events);
+  renderPayments();
+  renderEventsTree();
+  renderPeople();
+}
+
+document.getElementById('pl-paid').addEventListener('change', function(){
+  var sel = document.getElementById('pl-paidto');
+  sel.disabled = !this.checked;
+  if(!this.checked) sel.value = '';
+});
 function renderPledgePersonSelect(){
   var sel = document.getElementById('pl-person');
   sel.innerHTML = '<option value="">בחירת מתפלל...</option>';
@@ -1141,6 +1244,7 @@ function resetPledgeForm(){
   document.getElementById('pl-amount').value='';
   createHebDatePicker(document.getElementById('pl-date-picker'), todayHeb(), true);
   document.getElementById('pl-paid').checked=false;
+  document.getElementById('pl-paidto').disabled = true;
   document.getElementById('pledge-form-title').textContent='התחייבות / נדבה חדשה';
   document.getElementById('pl-save-btn').textContent='שמירה';
   document.getElementById('pl-cancel-edit').classList.add('hidden');
@@ -1157,6 +1261,7 @@ function editPledge(id){
   createHebDatePicker(document.getElementById('pl-date-picker'), p.hebDate, true);
   document.getElementById('pl-paid').checked = !!p.paid;
   fillPayeeSelect(document.getElementById('pl-paidto'), p.paidTo);
+  document.getElementById('pl-paidto').disabled = !p.paid;
   document.getElementById('pledge-form-title').textContent='עריכת התחייבות';
   document.getElementById('pl-save-btn').textContent='שמירת שינויים';
   document.getElementById('pl-cancel-edit').classList.remove('hidden');
@@ -1365,9 +1470,7 @@ function openEventReport(eventId){
   openPrintModal(ev.title, bodyHtml, excelRows, 'דוח_'+ev.title+'.xlsx');
 }
 
-function openPersonLedger(personId){
-  var p = people.find(function(x){ return x.id===personId; });
-  if(!p) return;
+function collectLedgerRows(personId){
   var rows = [];
   events.forEach(function(ev){
     (ev.assignments||[]).forEach(function(a){
@@ -1382,22 +1485,62 @@ function openPersonLedger(personId){
     }
   });
   rows.sort(function(a,b){ return hebToRdObj(b.hebDate)-hebToRdObj(a.hebDate); });
+  return rows;
+}
+
+function ledgerTableHtml(rows, includeWho){
+  if(!rows.length) return '<p>אין רשומות.</p>';
+  return '<table><thead><tr>'+(includeWho?'<th>מי</th>':'')+'<th>תאריך</th><th>תיאור</th><th>סכום</th><th>סטטוס</th><th>שולם למי</th></tr></thead><tbody>'+
+    rows.map(function(r){
+      return '<tr>'+(includeWho?('<td>'+r.who+'</td>'):'')+'<td>'+formatHebDate(r.hebDate)+'</td><td>'+r.desc+'</td><td>₪'+r.amount.toLocaleString()+'</td><td>'+(r.paid?'שולם':'לא שולם')+'</td><td>'+(r.paid?(r.paidTo||'—'):'—')+'</td></tr>';
+    }).join('')+
+  '</tbody></table>';
+}
+
+function openPersonLedger(personId){
+  var p = people.find(function(x){ return x.id===personId; });
+  if(!p) return;
+  var rows = collectLedgerRows(personId);
   var totalAmount = rows.reduce(function(s,r){ return s+r.amount; },0);
   var totalPaid = rows.filter(function(r){ return r.paid; }).reduce(function(s,r){ return s+r.amount; },0);
   var totalDue = totalAmount-totalPaid;
 
-  var bodyHtml = '<div class="summary-bar">'+
-    '<div class="summary-card"><div class="num">₪'+totalAmount.toLocaleString()+'</div><div class="lbl">סה"כ חויב</div></div>'+
+  var host = people.find(function(h){ return h.id===p.linkedPersonId; });
+  var guests = people.filter(function(g){ return g.linkedPersonId===personId; });
+
+  var bodyHtml = (host ? '<p class="small-note">מלווה של: '+fullName(host)+'</p>' : '')+
+  '<div class="summary-bar">'+
+    '<div class="summary-card"><div class="num">₪'+totalAmount.toLocaleString()+'</div><div class="lbl">סה"כ חויב (אישי)</div></div>'+
     '<div class="summary-card"><div class="num">₪'+totalPaid.toLocaleString()+'</div><div class="lbl">שולם</div></div>'+
     '<div class="summary-card"><div class="num">₪'+totalDue.toLocaleString()+'</div><div class="lbl">נותר לתשלום</div></div>'+
   '</div>'+
-  (rows.length ? '<table><thead><tr><th>תאריך</th><th>תיאור</th><th>סכום</th><th>סטטוס</th></tr></thead><tbody>'+
-    rows.map(function(r){ return '<tr><td>'+formatHebDate(r.hebDate)+'</td><td>'+r.desc+'</td><td>₪'+r.amount.toLocaleString()+'</td><td>'+(r.paid?'שולם':'לא שולם')+'</td></tr>'; }).join('')+
-  '</tbody></table>' : '<p>אין רשומות בתשלום עבור מתפלל זה.</p>');
+  ledgerTableHtml(rows, false);
 
   var excelRows = rows.map(function(r){
-    return { 'תאריך': formatHebDate(r.hebDate), 'תיאור': r.desc, 'סכום': r.amount, 'סטטוס': r.paid?'שולם':'לא שולם' };
+    return { 'תאריך': formatHebDate(r.hebDate), 'תיאור': r.desc, 'סכום': r.amount, 'סטטוס': r.paid?'שולם':'לא שולם', 'שולם למי': r.paid?(r.paidTo||''):'' };
   });
+
+  if(guests.length){
+    var guestRows = [];
+    guests.forEach(function(g){
+      collectLedgerRows(g.id).forEach(function(r){ r.who = fullName(g); guestRows.push(r); });
+    });
+    guestRows.sort(function(a,b){ return hebToRdObj(b.hebDate)-hebToRdObj(a.hebDate); });
+    var guestTotal = guestRows.reduce(function(s,r){ return s+r.amount; },0);
+    var guestPaid = guestRows.filter(function(r){ return r.paid; }).reduce(function(s,r){ return s+r.amount; },0);
+    bodyHtml += '<div class="divider"></div>'+
+      '<h3 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);font-size:15px;">תשלומים של נלווים ('+guests.map(fullName).join(', ')+')</h3>'+
+      '<div class="summary-bar">'+
+        '<div class="summary-card"><div class="num">₪'+guestTotal.toLocaleString()+'</div><div class="lbl">סה"כ חויב (נלווים)</div></div>'+
+        '<div class="summary-card"><div class="num">₪'+guestPaid.toLocaleString()+'</div><div class="lbl">שולם (נלווים)</div></div>'+
+      '</div>'+
+      ledgerTableHtml(guestRows, true);
+    excelRows.push({ 'תאריך':'', 'תיאור':'--- תשלומים של נלווים ---', 'סכום':'', 'סטטוס':'', 'שולם למי':'' });
+    guestRows.forEach(function(r){
+      excelRows.push({ 'תאריך': formatHebDate(r.hebDate), 'תיאור': r.who+' — '+r.desc, 'סכום': r.amount, 'סטטוס': r.paid?'שולם':'לא שולם', 'שולם למי': r.paid?(r.paidTo||''):'' });
+    });
+  }
+
   openPrintModal('כרטסת תשלומים — '+fullName(p), bodyHtml, excelRows, 'כרטסת_'+fullName(p)+'.xlsx');
 }
 
