@@ -712,9 +712,9 @@ function openPersonFormModal(id){
     };
     if(editingPersonId){
       var idx = people.findIndex(function(x){ return x.id===editingPersonId; });
-      data.birthday = people[idx].birthday; data.children = people[idx].children;
-      data.notes = people[idx].notes; data.yahrzeits = people[idx].yahrzeits;
-      data.phone = people[idx].phone; data.address = people[idx].address;
+      data.birthday = people[idx].birthday || null; data.children = people[idx].children || '';
+      data.notes = people[idx].notes || ''; data.yahrzeits = people[idx].yahrzeits || [];
+      data.phone = people[idx].phone || ''; data.address = people[idx].address || '';
       people[idx] = Object.assign({id:editingPersonId}, data);
     } else {
       data.id = uid();
