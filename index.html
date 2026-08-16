@@ -251,6 +251,7 @@ table.tier-breakdown td:first-child, table.tier-breakdown th:first-child{text-al
         </select>
       </div>
     </div>
+    <div class="field"><label class="paid-toggle" style="font-size:13px;"><input type="checkbox" id="people-show-inactive"> הצג גם מתפללים מושבתים</label></div>
     <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn secondary small" id="export-people-btn">ייצוא רשימת מתפללים לאקסל</button>
       <button class="btn secondary small" id="print-people-btn">הדפסה / PDF</button>
@@ -901,15 +902,43 @@ document.getElementById('people-add-trigger').addEventListener('click', function
 
 function editPerson(id){ openPersonFormModal(id); }
 
+function personHasHistory(id){
+  var inEvents = events.some(function(ev){ return (ev.assignments||[]).some(function(a){ return a.congregantId===id; }); });
+  var inPledges = pledges.some(function(pl){ return pl.personId===id; });
+  var inLockedProject = distProjects.some(function(d){ return d.locked && d.snapshot && d.snapshot.familyIds && d.snapshot.familyIds.indexOf(id)!==-1; });
+  return inEvents || inPledges || inLockedProject;
+}
+
 async function deletePerson(id){
-  if(!confirm('למחוק את המתפלל הזה? לא ניתן לשחזר פעולה זו.')) return;
-  people = people.filter(function(p){ return p.id!==id; });
-  await collDelete('people', id);
+  var p = people.find(function(x){ return x.id===id; });
+  if(!p) return;
+  if(personHasHistory(id)){
+    if(!confirm('למתפלל "'+fullName(p)+'" כבר יש היסטוריה (עליות, התחייבויות, או פרוייקט חלוקה נעול), ולכן מחיקה מלאה תפגע בדוחות ישנים.\n\nהאם להשבית אותו במקום? הוא ייעלם מרשימות הבחירה, אך ההיסטוריה שלו תישמר במלואה. אפשר להפעיל אותו מחדש בכל עת.')) return;
+    p.inactive = true;
+    await savePerson(p);
+    showToast(fullName(p)+' הושבת.', 'success');
+  } else {
+    if(!confirm('למחוק את המתפלל הזה? לא ניתן לשחזר פעולה זו.')) return;
+    people = people.filter(function(x){ return x.id!==id; });
+    await collDelete('people', id);
+  }
   renderPeople();
   refreshCongregantSelects();
   renderReminders();
   renderDistributionsSummary();
   renderDistributionsList();
+}
+
+async function reactivatePerson(id){
+  var p = people.find(function(x){ return x.id===id; });
+  if(!p) return;
+  p.inactive = false;
+  await savePerson(p);
+  renderPeople();
+  refreshCongregantSelects();
+  renderDistributionsSummary();
+  renderDistributionsList();
+  showToast(fullName(p)+' הופעל מחדש.', 'success');
 }
 
 function lastAliyahDate(personId){
@@ -934,7 +963,7 @@ function renderPeopleTypeFilter(){
   });
   sel.value = cur;
 }
-['people-search','people-status-filter','people-type-filter','people-sort'].forEach(function(id){
+['people-search','people-status-filter','people-type-filter','people-sort','people-show-inactive'].forEach(function(id){
   document.getElementById(id).addEventListener('input', renderPeople);
   document.getElementById(id).addEventListener('change', renderPeople);
 });
@@ -945,8 +974,10 @@ function renderPeople(){
   var statusF = document.getElementById('people-status-filter').value;
   var typeF = document.getElementById('people-type-filter').value;
   var sortMode = document.getElementById('people-sort').value;
+  var showInactive = document.getElementById('people-show-inactive').checked;
 
   var list = people.filter(function(p){
+    if(!showInactive && p.inactive) return false;
     if(q && (p.firstName+' '+p.lastName).toLowerCase().indexOf(q) === -1) return false;
     if(statusF && p.status !== statusF) return false;
     if(typeF && p.typeId !== typeF) return false;
@@ -982,7 +1013,7 @@ function renderPeople(){
     }
     return '<tr class="'+(typeRequiresLink(p.typeId)?'guest-row':'')+'">'+
       '<td data-label="שם משפחה">'+ (p.lastName||'—') +'</td>'+
-      '<td data-label="שם פרטי">'+ (p.firstName||'—') +'</td>'+
+      '<td data-label="שם פרטי">'+ (p.firstName||'—') + (p.inactive ? ' <span class="badge unpaid">מושבת</span>' : '') +'</td>'+
       '<td data-label="סוג">'+ typeTxt +'</td>'+
       '<td data-label="עלייה אחרונה">'+ (last ? formatHebDate(last,false) : 'ללא רישום') +'</td>'+
       '<td data-label="פעולות" class="actions-cell">'+
@@ -2244,11 +2275,17 @@ function openActionSheet(items){
   document.getElementById('action-sheet-overlay').addEventListener('click', function(e){ if(e.target.id==='action-sheet-overlay') root.innerHTML=''; });
 }
 function openPersonActions(id){
-  openActionSheet([
+  var p = people.find(function(x){ return x.id===id; });
+  var items = [
     {label:'🗎 צפייה בכרטיס', onClick:function(){ openPersonCard(id); }},
-    {label:'✎ עריכה', onClick:function(){ editPerson(id); }},
-    {label:'✕ מחיקה', danger:true, onClick:function(){ deletePerson(id); }}
-  ]);
+    {label:'✎ עריכה', onClick:function(){ editPerson(id); }}
+  ];
+  if(p && p.inactive){
+    items.push({label:'↺ הפעלה מחדש', onClick:function(){ reactivatePerson(id); }});
+  } else {
+    items.push({label:'✕ מחיקה', danger:true, onClick:function(){ deletePerson(id); }});
+  }
+  openActionSheet(items);
 }
 function openPaymentActions(eventId, assignmentId){
   openActionSheet([
