@@ -177,15 +177,22 @@ table.tier-breakdown td:first-child, table.tier-breakdown th:first-child{text-al
 .collapse-header.open .chevron{transform:rotate(180deg);}
 .collapse-body{margin-top:14px;}
 @media print{
+  .wrap, #loading-screen, #toast-wrap{display:none !important;}
+  #modal-root{display:block !important;}
   body *{visibility:hidden;}
   .print-area, .print-area *{visibility:visible;}
-  .print-area{position:absolute;top:0;left:0;width:100%;padding:10px;}
+  .modal-overlay{position:static !important;inset:auto !important;background:none !important;padding:0 !important;display:block !important;}
+  .modal-box{position:static !important;max-width:none !important;width:auto !important;max-height:none !important;overflow:visible !important;box-shadow:none !important;border-radius:0 !important;padding:0 !important;}
+  .print-area{position:static !important;top:auto;left:auto;width:auto;padding:0;}
   .no-print{display:none !important;}
   .print-only{display:block !important;}
+  table{page-break-inside:auto;}
+  tr{page-break-inside:avoid;page-break-after:auto;}
+  h2,h3,h4{page-break-after:avoid;}
 }
 .print-only{display:none;}
-.print-logo-wrap{overflow:auto;margin-bottom:10px;}
-.print-logo{height:55px;width:auto;float:left;margin-inline-end:14px;}
+.print-logo-wrap{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.print-logo{height:55px;width:auto;flex-shrink:0;}
 .toast-wrap{position:fixed;bottom:18px;right:18px;left:18px;z-index:80;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;}
 .toast{background:var(--ink);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:420px;pointer-events:auto;animation:toast-in .2s ease-out;}
 .toast.success{background:var(--sage);}
@@ -240,18 +247,24 @@ table.tier-breakdown td:first-child, table.tier-breakdown th:first-child{text-al
     </div>
     <div class="collapse-body hidden" id="people-list-body">
     <div class="field"><input type="text" id="people-search" placeholder="חיפוש לפי שם או שם משפחה..."></div>
-    <div class="grid3" style="margin-bottom:10px;">
-      <div class="field"><select id="people-status-filter"><option value="">כל הסטטוסים</option><option value="כהן">כהן</option><option value="לוי">לוי</option><option value="ישראל">ישראל</option></select></div>
-      <div class="field"><select id="people-type-filter"><option value="">כל הסוגים</option></select></div>
-      <div class="field">
-        <select id="people-sort">
-          <option value="name">מיון: לפי שם</option>
-          <option value="lastAsc">מיון: עלייה אחרונה - מהישן ביותר</option>
-          <option value="lastDesc">מיון: עלייה אחרונה - מהחדש ביותר</option>
-        </select>
-      </div>
+    <div class="collapse-header" id="people-filters-header" style="margin-bottom:8px;padding:6px 2px;">
+      <span style="font-size:13px;color:var(--ink-soft);font-weight:500;">סינון ומיון</span>
+      <span class="chevron">▾</span>
     </div>
-    <div class="field"><label class="paid-toggle" style="font-size:13px;"><input type="checkbox" id="people-show-inactive"> הצג גם מתפללים מושבתים</label></div>
+    <div class="collapse-body hidden" id="people-filters-body">
+      <div class="grid3" style="margin-bottom:10px;">
+        <div class="field"><select id="people-status-filter"><option value="">כל הסטטוסים</option><option value="כהן">כהן</option><option value="לוי">לוי</option><option value="ישראל">ישראל</option></select></div>
+        <div class="field"><select id="people-type-filter"><option value="">כל הסוגים</option></select></div>
+        <div class="field">
+          <select id="people-sort">
+            <option value="name">מיון: לפי שם</option>
+            <option value="lastAsc">מיון: עלייה אחרונה - מהישן ביותר</option>
+            <option value="lastDesc">מיון: עלייה אחרונה - מהחדש ביותר</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label class="paid-toggle" style="font-size:13px;"><input type="checkbox" id="people-show-inactive"> הצג גם מתפללים מושבתים</label></div>
+    </div>
     <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn secondary small" id="export-people-btn">ייצוא רשימת מתפללים לאקסל</button>
       <button class="btn secondary small" id="print-people-btn">הדפסה / PDF</button>
@@ -746,6 +759,7 @@ function makeCollapsible(headerId, bodyId, storageKey, defaultOpen){
 }
 function initCollapsibles(){
   makeCollapsible('people-list-header','people-list-body','ui_people_list',false);
+  makeCollapsible('people-filters-header','people-filters-body','ui_people_filters',false);
   makeCollapsible('events-list-header','events-list-body','ui_events_list',false);
   makeCollapsible('payments-list-header','payments-list-body','ui_payments_list',false);
   makeCollapsible('pledges-list-header','pledges-list-body','ui_pledges_list',false);
@@ -1978,12 +1992,15 @@ function independentPeopleForProject(d){
 function computeProjectSummary(d){
   if(d.locked && d.snapshot){ return d.snapshot; }
   var indep = independentPeopleForProject(d);
-  var covered = {};
-  tiers.forEach(function(t){
-    indep.forEach(function(p){ var s=familySouls(p); if(s>=t.min && s<=t.max) covered[p.id]=true; });
+  var tierByPerson = {};
+  indep.forEach(function(p){
+    var s = familySouls(p);
+    var t = tiers.find(function(t){ return s>=t.min && s<=t.max; });
+    if(t) tierByPerson[p.id] = t;
   });
-  var familyIds = Object.keys(covered);
+  var familyIds = Object.keys(tierByPerson);
   var coveredCount = familyIds.length;
+  var uncoveredPeople = indep.filter(function(p){ return !tierByPerson[p.id]; });
   var products = (d.products||[]).map(function(pr){
     var total = 0;
     tiers.forEach(function(t){
@@ -1994,7 +2011,15 @@ function computeProjectSummary(d){
     });
     return { name: pr.name, familyCount: coveredCount, totalQty: total };
   });
-  return { products: products, totalFamilies: indep.length, coveredCount: coveredCount, familyIds: familyIds };
+  var familyDetails = indep.filter(function(p){ return tierByPerson[p.id]; }).map(function(p){
+    var t = tierByPerson[p.id];
+    return { id: p.id, name: fullName(p), tierId: t.id, tierLabel: t.label, souls: familySouls(p) };
+  });
+  return {
+    products: products, totalFamilies: indep.length, coveredCount: coveredCount, familyIds: familyIds,
+    uncoveredCount: uncoveredPeople.length, uncoveredNames: uncoveredPeople.map(fullName),
+    familyDetails: familyDetails
+  };
 }
 
 async function lockDistProject(id){
@@ -2036,9 +2061,11 @@ function renderDistributionsList(){
       return '<tr><td>'+p.name+'</td><td>'+p.familyCount+'</td><td>'+p.totalQty+'</td></tr>';
     }).join('');
     var lockBadge = d.locked ? ' <span class="badge unpaid" style="background:var(--ink-soft);color:#fff;">🔒 נעול</span>' : ' <span class="badge paid">🔓 פתוח</span>';
+    var uncoveredWarning = summary.uncoveredCount ? '<p class="small-note" style="color:var(--terra);">⚠️ '+summary.uncoveredCount+' משפחות לא נכנסות לאף מדרג ולא כלולות בהזמנה: '+summary.uncoveredNames.join(', ')+'</p>' : '';
     return '<div class="dist-card">'+
       '<div class="dist-title" onclick="editDistProject(\''+d.id+'\')">'+d.title+lockBadge+'</div>'+
       '<div class="dist-sub">'+(d.hebDate?formatHebDate(d.hebDate,false)+' · ':'')+summary.totalFamilies+' משפחות · '+summary.products.length+' מוצרים</div>'+
+      uncoveredWarning+
       (summary.products.length ? '<table class="tier-breakdown" style="margin-top:10px;"><thead><tr><th>מוצר</th><th>משפחות רשומות</th><th>כמות להזמנה</th></tr></thead><tbody>'+tableRows+'</tbody></table>' : '<p class="small-note">אין עדיין מוצרים בפרוייקט הזה.</p>')+
       '<div class="dist-actions">'+
         '<button class="btn secondary small" onclick="openDistProjectReport(\''+d.id+'\')">דוח / הדפסה</button>'+
@@ -2053,6 +2080,18 @@ function renderDistributionsList(){
   }).join('');
 }
 
+function computeFamilyProductMatrix(d, summary){
+  var rows = (summary.familyDetails||[]).map(function(fd){
+    var qtys = (d.products||[]).map(function(pr){
+      var q = pr.qtyByTier ? (pr.qtyByTier[fd.tierId]||0) : 0;
+      return {name: pr.name, qty: q};
+    });
+    return {name: fd.name, tierLabel: fd.tierLabel, qtys: qtys};
+  });
+  rows.sort(function(a,b){ return a.name.localeCompare(b.name); });
+  return rows;
+}
+
 function openDistProjectReport(id){
   var d = distProjects.find(function(x){ return x.id===id; });
   if(!d) return;
@@ -2062,11 +2101,39 @@ function openDistProjectReport(id){
     '<p>סה"כ משפחות: '+summary.totalFamilies+'</p>'+
     '<table><thead><tr><th>מוצר</th><th>משפחות רשומות</th><th>כמות להזמנה</th></tr></thead><tbody>'+
     summary.products.map(function(p){ return '<tr><td>'+p.name+'</td><td>'+p.familyCount+'</td><td>'+p.totalQty+'</td></tr>'; }).join('')+
-    '</tbody></table>';
+    '</tbody></table>'+
+    (summary.uncoveredCount ? '<p class="small-note" style="color:var(--terra);">⚠️ '+summary.uncoveredCount+' משפחות לא נכנסות לאף מדרג ולא כלולות בהזמנה: '+summary.uncoveredNames.join(', ')+'</p>' : '');
+
+  var matrix = computeFamilyProductMatrix(d, summary);
+  var familyReportHtml = '<div class="print-only"><div class="divider"></div>'+
+    '<h3 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);">דוח לפי משפחות</h3>'+
+    '<table><thead><tr><th>משפחה</th><th>מדרג</th>'+(d.products||[]).map(function(pr){ return '<th>'+pr.name+'</th>'; }).join('')+'</tr></thead><tbody>'+
+    matrix.map(function(r){
+      return '<tr><td>'+r.name+'</td><td>'+r.tierLabel+'</td>'+r.qtys.map(function(q){ return '<td>'+(q.qty||'—')+'</td>'; }).join('')+'</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+
+  var productReportHtml = '<div class="print-only"><div class="divider"></div>'+
+    '<h3 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);">דוח לפי מוצר</h3>'+
+    (d.products||[]).map(function(pr){
+      var recipients = matrix.filter(function(r){
+        var q = r.qtys.find(function(x){ return x.name===pr.name; });
+        return q && q.qty>0;
+      }).map(function(r){
+        var q = r.qtys.find(function(x){ return x.name===pr.name; });
+        return {name:r.name, qty:q.qty};
+      }).sort(function(a,b){ return a.name.localeCompare(b.name); });
+      return '<h4 style="margin-top:14px;font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);">'+pr.name+'</h4>'+
+        (recipients.length ? '<table><thead><tr><th>משפחה</th><th>כמות</th></tr></thead><tbody>'+
+          recipients.map(function(r){ return '<tr><td>'+r.name+'</td><td>'+r.qty+'</td></tr>'; }).join('')+
+        '</tbody></table>' : '<p class="small-note">אין נמענים למוצר זה.</p>');
+    }).join('')+
+  '</div>';
+
   var excelRows = summary.products.map(function(p){
     return {'מוצר': p.name, 'משפחות רשומות': p.familyCount, 'כמות להזמנה': p.totalQty};
   });
-  openPrintModal(d.title, bodyHtml, excelRows, 'פרוייקט_'+d.title+'.xlsx');
+  openPrintModal(d.title, bodyHtml+familyReportHtml+productReportHtml, excelRows, 'פרוייקט_'+d.title+'.xlsx');
 }
 
 function renderTypesSettings(){
