@@ -181,7 +181,11 @@ table.tier-breakdown td:first-child, table.tier-breakdown th:first-child{text-al
   .print-area, .print-area *{visibility:visible;}
   .print-area{position:absolute;top:0;left:0;width:100%;padding:10px;}
   .no-print{display:none !important;}
+  .print-only{display:block !important;}
 }
+.print-only{display:none;}
+.print-logo-wrap{overflow:auto;margin-bottom:10px;}
+.print-logo{height:55px;width:auto;float:left;margin-inline-end:14px;}
 .toast-wrap{position:fixed;bottom:18px;right:18px;left:18px;z-index:80;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;}
 .toast{background:var(--ink);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:420px;pointer-events:auto;animation:toast-in .2s ease-out;}
 .toast.success{background:var(--sage);}
@@ -223,6 +227,7 @@ table.tier-breakdown td:first-child, table.tier-breakdown th:first-child{text-al
 
 <div id="tab-people">
   <div id="reminders-panel"></div>
+  <div style="margin-bottom:16px;"><button class="btn secondary small" id="print-yahrzeit-report-btn">לוח יארצייטים וימי הולדת להדפסה</button></div>
 
   <div style="margin-bottom:16px;">
     <button class="btn" id="people-add-trigger" style="width:100%;">+ הוספת מתפלל</button>
@@ -246,7 +251,10 @@ table.tier-breakdown td:first-child, table.tier-breakdown th:first-child{text-al
         </select>
       </div>
     </div>
-    <div style="margin-bottom:10px;"><button class="btn secondary small" id="export-people-btn">ייצוא רשימת מתפללים לאקסל</button></div>
+    <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn secondary small" id="export-people-btn">ייצוא רשימת מתפללים לאקסל</button>
+      <button class="btn secondary small" id="print-people-btn">הדפסה / PDF</button>
+    </div>
     <div id="people-list"></div>
     </div>
   </section>
@@ -330,7 +338,7 @@ table.tier-breakdown td:first-child, table.tier-breakdown th:first-child{text-al
     </div>
     <div id="dist-missing-warning"></div>
     <p class="small-note">נפשות = מספר הילדים + 2 (הורים), לכל מתפלל עצמאי שלא סומן כ"לא לכלול בחלוקות".</p>
-    <button class="btn secondary small" id="open-demographic-report-btn" style="margin-top:8px;">דוח דמוגרפי מלא (לפי מדרגים)</button>
+    <button class="btn secondary small" id="open-demographic-report-btn" style="margin-top:8px;">דוח משפחות מפורט</button>
   </section>
 
   <div style="margin-bottom:16px;">
@@ -789,6 +797,7 @@ function badgeForStatus(s){
   return '<span class="badge '+cls+'">'+s+'</span>';
 }
 function fullName(p){ if(!p) return '—'; return (p.lastName||'') + ' ' + (p.firstName||''); }
+function activePeople(){ return people.filter(function(p){ return !p.inactive; }); }
 function typeName(id){ var t = types.find(function(x){ return x.id===id; }); return t ? t.name : '—'; }
 function typeRequiresLink(id){ var t = types.find(function(x){ return x.id===id; }); return t ? !!t.requiresLink : false; }
 
@@ -796,19 +805,19 @@ function renderTypeSelect(){
   var sel = document.getElementById('p-typeid');
   if(!sel) return;
   var cur = sel.value;
-  sel.innerHTML = '';
+  sel.innerHTML = '<option value="">נא לבחור...</option>';
   types.forEach(function(t){
     var opt = document.createElement('option'); opt.value=t.id; opt.textContent=t.name;
     sel.appendChild(opt);
   });
-  sel.value = cur || (types[0] ? types[0].id : '');
+  sel.value = cur || '';
 }
 
 function buildLinkedPicker(selectedId){
   var wrap = document.getElementById('p-linked-wrap');
   if(!wrap) return;
   var hidden = buildPersonPicker(wrap, selectedId, function(){
-    return people.filter(function(p){ return !typeRequiresLink(p.typeId) && p.id !== editingPersonId; });
+    return people.filter(function(p){ return !typeRequiresLink(p.typeId) && p.id !== editingPersonId && !p.inactive; });
   });
   hidden.id = 'p-linked';
 }
@@ -854,6 +863,7 @@ function openPersonFormModal(id){
     var firstName = document.getElementById('p-firstname').value.trim();
     if(!firstName){ alert('יש להזין שם פרטי'); return; }
     var typeId = document.getElementById('p-typeid').value;
+    if(!typeId){ alert('יש לבחור סוג מתפלל'); return; }
     var data = {
       lastName: lastName, firstName: firstName,
       father: document.getElementById('p-father').value.trim(),
@@ -995,6 +1005,16 @@ function openPersonCard(id){
   history.sort(function(a,b){ return hebToRdObj(b.hebDate) - hebToRdObj(a.hebDate); });
 
   var host = people.find(function(h){ return h.id===p.linkedPersonId; });
+  var openProjects = distProjects.filter(function(d){ return !d.locked; });
+  var projectsExcludeHtml = '';
+  if(!typeRequiresLink(p.typeId) && openProjects.length){
+    projectsExcludeHtml = '<div class="field"><label>פרוייקטי חלוקה פתוחים</label>'+
+      openProjects.map(function(d){
+        var excluded = (d.excludedPersonIds||[]).indexOf(id)!==-1;
+        return '<label class="paid-toggle" style="font-size:13px;display:block;margin-bottom:4px;"><input type="checkbox" class="card-project-exclude" data-project-id="'+d.id+'" '+(excluded?'checked':'')+'> לא לכלול ב"'+d.title+'"</label>';
+      }).join('') +
+    '</div>';
+  }
   var root = document.getElementById('modal-root');
   var html = '<div class="modal-overlay" id="person-modal-overlay">'+
     '<div class="modal-box">'+
@@ -1012,7 +1032,8 @@ function openPersonCard(id){
       '<div class="field"><label>מספר ילדים</label><input type="number" id="card-children" min="0" value="'+(p.children||'')+'"></div>'+
     '</div>'+
     '<div class="field"><label>הערות</label><input type="text" id="card-notes" value="'+(p.notes?p.notes.replace(/"/g,'&quot;'):'')+'"></div>'+
-    '<div class="field"><label class="paid-toggle" style="font-size:14px;"><input type="checkbox" id="card-exclude-dist" '+(p.excludeFromDistributions?'checked':'')+'> לא לכלול בחלוקות</label></div>'+
+    '<div class="field"><label class="paid-toggle" style="font-size:14px;"><input type="checkbox" id="card-exclude-dist" '+(p.excludeFromDistributions?'checked':'')+'> לא לכלול בחלוקות (כללי, לצמיתות)</label></div>'+
+    projectsExcludeHtml+
     '<div class="field"><label>יארצייטים</label><div id="card-yahrzeits-list"></div>'+
       '<button class="btn secondary small" type="button" id="card-add-yahrzeit">+ הוספת יארצייט</button></div>'+
     '<button class="btn small" id="card-save-details">שמירת פרטים נוספים</button>'+
@@ -1040,6 +1061,18 @@ function openPersonCard(id){
     people[idx].children = document.getElementById('card-children').value;
     people[idx].notes = document.getElementById('card-notes').value.trim();
     people[idx].excludeFromDistributions = document.getElementById('card-exclude-dist').checked;
+    var projCbs = Array.from(document.querySelectorAll('.card-project-exclude'));
+    for(var pi=0; pi<projCbs.length; pi++){
+      var cb = projCbs[pi];
+      var projId = cb.dataset.projectId;
+      var proj = distProjects.find(function(x){ return x.id===projId; });
+      if(!proj) continue;
+      proj.excludedPersonIds = proj.excludedPersonIds || [];
+      var exIdx = proj.excludedPersonIds.indexOf(id);
+      if(cb.checked && exIdx===-1) proj.excludedPersonIds.push(id);
+      if(!cb.checked && exIdx!==-1) proj.excludedPersonIds.splice(exIdx,1);
+      await collSave('distProjects', proj);
+    }
     people[idx].yahrzeits = Array.from(yzList.querySelectorAll('.yahrzeit-row')).map(function(row){
       return { label: row.querySelector('.yz-label').value.trim(), date: row.querySelector('.yz-date')._read() };
     }).filter(function(y){ return y.label || y.date; });
@@ -1103,6 +1136,28 @@ function renderReminders(){
   }).join('') + '</div>';
 }
 
+function openYahrzeitBirthdayReport(){
+  var items = [];
+  people.forEach(function(p){
+    if(p.birthday) items.push({name: fullName(p), label: 'יום הולדת', date: p.birthday});
+    (p.yahrzeits||[]).forEach(function(y){
+      if(y.date) items.push({name: fullName(p), label: y.label||'יארצייט', date: y.date});
+    });
+  });
+  items.sort(function(a,b){
+    var oa = monthsOrderForYear(a.date.y).indexOf(a.date.m);
+    var ob = monthsOrderForYear(b.date.y).indexOf(b.date.m);
+    if(oa!==ob) return oa-ob;
+    return a.date.d - b.date.d;
+  });
+  var bodyHtml = items.length ? '<table><thead><tr><th>תאריך</th><th>שם</th><th>סוג</th></tr></thead><tbody>'+
+    items.map(function(i){ return '<tr><td>'+formatHebDate(i.date,false)+'</td><td>'+i.name+'</td><td>'+i.label+'</td></tr>'; }).join('')+
+    '</tbody></table>' : '<p>אין עדיין תאריכים רשומים.</p>';
+  var excelRows = items.map(function(i){ return {'תאריך': formatHebDate(i.date,false), 'שם': i.name, 'סוג': i.label}; });
+  openPrintModal('לוח יארצייטים וימי הולדת', bodyHtml, excelRows, 'לוח_יארצייטים.xlsx');
+}
+document.getElementById('print-yahrzeit-report-btn').addEventListener('click', openYahrzeitBirthdayReport);
+
 function renderHonorSuggestions(){
   var names = {};
   events.forEach(function(ev){
@@ -1133,7 +1188,7 @@ function honorRowTemplate(honorName, congregantId, price, paid, paidTo){
   row.appendChild(paidToSel);
   row.appendChild(right);
 
-  var congHidden = buildPersonPicker(congWrap, congregantId, function(){ return people; });
+  var congHidden = buildPersonPicker(congWrap, congregantId, function(){ return activePeople(); });
   congHidden.className = 'h-cong';
   fillPayeeSelect(paidToSel, paidTo);
   paidToSel.disabled = !paidCheck.checked;
@@ -1215,7 +1270,7 @@ function refreshCongregantSelects(){
     var hidden = row.querySelector('.h-cong');
     if(!wrap || !hidden) return;
     var cur = hidden.value;
-    var newHidden = buildPersonPicker(wrap, cur, function(){ return people; });
+    var newHidden = buildPersonPicker(wrap, cur, function(){ return activePeople(); });
     newHidden.className = 'h-cong';
   });
 }
@@ -1524,7 +1579,7 @@ async function deletePaymentRecord(eventId, assignmentId){
 function buildPledgePersonPicker(selectedId){
   var wrap = document.getElementById('pl-person-wrap');
   if(!wrap) return;
-  var hidden = buildPersonPicker(wrap, selectedId, function(){ return people; });
+  var hidden = buildPersonPicker(wrap, selectedId, function(){ return activePeople(); });
   hidden.id = 'pl-person';
 }
 
@@ -1638,7 +1693,7 @@ function renderPledges(){
 
 /* ==================== חלוקות ==================== */
 function familySouls(p){ return (parseInt(p.children)||0) + 2; }
-function independentPeople(){ return people.filter(function(p){ return !typeRequiresLink(p.typeId) && !p.excludeFromDistributions; }); }
+function independentPeople(){ return people.filter(function(p){ return !typeRequiresLink(p.typeId) && !p.excludeFromDistributions && !p.inactive; }); }
 
 function renderDistributionsSummary(){
   var indep = independentPeople();
@@ -1739,7 +1794,7 @@ async function deleteTier(id){
 }
 
 /* ---- דוח דמוגרפי כללי (לא תלוי פרוייקט) ---- */
-function openDemographicReport(){
+function openFamiliesReport(){
   var indep = independentPeople();
   var totalSouls = indep.reduce(function(s,p){ return s+familySouls(p); },0);
   var totalChildren = indep.reduce(function(s,p){ return s+(parseInt(p.children)||0); },0);
@@ -1752,16 +1807,28 @@ function openDemographicReport(){
   sortedTiers.forEach(function(t){ indep.forEach(function(p){ var s=familySouls(p); if(s>=t.min && s<=t.max) covered[p.id]=true; }); });
   var uncovered = indep.filter(function(p){ return !covered[p.id]; });
 
-  var bodyHtml = '<p>סה"כ משפחות: '+indep.length+' · סה"כ נפשות: '+totalSouls+' · סה"כ ילדים: '+totalChildren+'</p>'+
+  var summaryHtml = '<p>סה"כ משפחות: '+indep.length+' · סה"כ נפשות: '+totalSouls+' · סה"כ ילדים: '+totalChildren+'</p>'+
     '<table><thead><tr><th>מדרג</th><th>מספר משפחות</th></tr></thead><tbody>'+
     tierRows.map(function(t){ return '<tr><td>'+t.label+'</td><td>'+t.count+'</td></tr>'; }).join('')+
     '</tbody></table>'+
     (uncovered.length ? '<p class="small-note">משפחות מחוץ לכל מדרג ('+uncovered.length+'): '+uncovered.map(fullName).join(', ')+'</p>' : '');
-  var excelRows = tierRows.map(function(t){ return {'מדרג': t.label, 'מספר משפחות': t.count}; });
-  excelRows.push({'מדרג':'סה"כ', 'מספר משפחות': indep.length});
-  openPrintModal('דוח דמוגרפי כללי', bodyHtml, excelRows, 'דוח_דמוגרפי.xlsx');
+
+  var sortedFamilies = indep.slice().sort(function(a,b){ return (a.lastName||'').localeCompare(b.lastName||''); });
+  var familiesTableHtml = '<div class="print-only">'+
+    '<div class="divider"></div>'+
+    '<h3 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);">רשימת משפחות מלאה</h3>'+
+    '<table><thead><tr><th>שם</th><th>מספר ילדים</th><th>נפשות</th></tr></thead><tbody>'+
+    sortedFamilies.map(function(p){ return '<tr><td>'+fullName(p)+'</td><td>'+(p.children!==undefined&&p.children!==''?p.children:'—')+'</td><td>'+familySouls(p)+'</td></tr>'; }).join('')+
+    '</tbody></table>'+
+  '</div>';
+
+  var bodyHtml = summaryHtml + familiesTableHtml;
+  var excelRows = sortedFamilies.map(function(p){
+    return {'שם': fullName(p), 'מספר ילדים': (p.children!==undefined&&p.children!==''?p.children:0), 'נפשות': familySouls(p)};
+  });
+  openPrintModal('דוח משפחות מפורט', bodyHtml, excelRows, 'דוח_משפחות.xlsx');
 }
-document.getElementById('open-demographic-report-btn').addEventListener('click', openDemographicReport);
+document.getElementById('open-demographic-report-btn').addEventListener('click', openFamiliesReport);
 
 /* ---- פרוייקטי חלוקה (כל פרוייקט מכיל כמה מוצרים) ---- */
 function productRowTemplate(name, qtyByTier){
@@ -1857,7 +1924,11 @@ function openDistProjectFormModal(id){
 }
 document.getElementById('distprojects-add-trigger').addEventListener('click', function(){ openDistProjectFormModal(null); });
 
-function editDistProject(id){ openDistProjectFormModal(id); }
+function editDistProject(id){
+  var d = distProjects.find(function(x){ return x.id===id; });
+  if(d && d.locked){ showToast('הפרוייקט נעול. יש לפתוח אותו מחדש כדי לערוך.', 'error'); return; }
+  openDistProjectFormModal(id);
+}
 
 async function deleteDistProject(id){
   var d = distProjects.find(function(x){ return x.id===id; });
@@ -1868,13 +1939,20 @@ async function deleteDistProject(id){
   renderDistributionsList();
 }
 
+function independentPeopleForProject(d){
+  var excluded = (d && d.excludedPersonIds) || [];
+  return independentPeople().filter(function(p){ return excluded.indexOf(p.id)===-1; });
+}
+
 function computeProjectSummary(d){
-  var indep = independentPeople();
+  if(d.locked && d.snapshot){ return d.snapshot; }
+  var indep = independentPeopleForProject(d);
   var covered = {};
   tiers.forEach(function(t){
     indep.forEach(function(p){ var s=familySouls(p); if(s>=t.min && s<=t.max) covered[p.id]=true; });
   });
-  var coveredCount = Object.keys(covered).length;
+  var familyIds = Object.keys(covered);
+  var coveredCount = familyIds.length;
   var products = (d.products||[]).map(function(pr){
     var total = 0;
     tiers.forEach(function(t){
@@ -1885,7 +1963,27 @@ function computeProjectSummary(d){
     });
     return { name: pr.name, familyCount: coveredCount, totalQty: total };
   });
-  return { products: products, totalFamilies: indep.length, coveredCount: coveredCount };
+  return { products: products, totalFamilies: indep.length, coveredCount: coveredCount, familyIds: familyIds };
+}
+
+async function lockDistProject(id){
+  var d = distProjects.find(function(x){ return x.id===id; });
+  if(!d) return;
+  if(!confirm('לנעול את הפרוייקט "'+d.title+'"?\n\nלאחר נעילה, המספרים יוקפאו במצבם הנוכחי ולא יושפעו יותר משינויים עתידיים (כמו עדכון מספר ילדים). ניתן לפתוח מחדש בכל עת.')) return;
+  d.snapshot = computeProjectSummary(d);
+  d.locked = true;
+  await collSave('distProjects', d);
+  renderDistributionsList();
+  showToast('הפרוייקט ננעל.', 'success');
+}
+async function unlockDistProject(id){
+  var d = distProjects.find(function(x){ return x.id===id; });
+  if(!d) return;
+  if(!confirm('לפתוח מחדש את הפרוייקט "'+d.title+'"?\n\nהמספרים יחזרו להתעדכן באופן חי לפי הנתונים הנוכחיים.')) return;
+  d.locked = false;
+  await collSave('distProjects', d);
+  renderDistributionsList();
+  showToast('הפרוייקט נפתח מחדש.', 'success');
 }
 
 function renderDistributionsList(){
@@ -1906,13 +2004,18 @@ function renderDistributionsList(){
     var tableRows = summary.products.map(function(p){
       return '<tr><td>'+p.name+'</td><td>'+p.familyCount+'</td><td>'+p.totalQty+'</td></tr>';
     }).join('');
+    var lockBadge = d.locked ? ' <span class="badge unpaid" style="background:var(--ink-soft);color:#fff;">🔒 נעול</span>' : ' <span class="badge paid">🔓 פתוח</span>';
     return '<div class="dist-card">'+
-      '<div class="dist-title" onclick="editDistProject(\''+d.id+'\')">'+d.title+'</div>'+
+      '<div class="dist-title" onclick="editDistProject(\''+d.id+'\')">'+d.title+lockBadge+'</div>'+
       '<div class="dist-sub">'+(d.hebDate?formatHebDate(d.hebDate,false)+' · ':'')+summary.totalFamilies+' משפחות · '+summary.products.length+' מוצרים</div>'+
       (summary.products.length ? '<table class="tier-breakdown" style="margin-top:10px;"><thead><tr><th>מוצר</th><th>משפחות רשומות</th><th>כמות להזמנה</th></tr></thead><tbody>'+tableRows+'</tbody></table>' : '<p class="small-note">אין עדיין מוצרים בפרוייקט הזה.</p>')+
       '<div class="dist-actions">'+
         '<button class="btn secondary small" onclick="openDistProjectReport(\''+d.id+'\')">דוח / הדפסה</button>'+
-        '<button class="btn secondary small" onclick="editDistProject(\''+d.id+'\')">עריכה</button>'+
+        (d.locked ?
+          '<button class="btn secondary small" onclick="unlockDistProject(\''+d.id+'\')">פתיחה מחדש</button>' :
+          '<button class="btn secondary small" onclick="lockDistProject(\''+d.id+'\')">נעילת פרוייקט</button>'+
+          '<button class="btn secondary small" onclick="editDistProject(\''+d.id+'\')">עריכה</button>'
+        )+
         '<button class="btn danger small" onclick="deleteDistProject(\''+d.id+'\')">מחיקה</button>'+
       '</div>'+
     '</div>';
@@ -1924,6 +2027,7 @@ function openDistProjectReport(id){
   if(!d) return;
   var summary = computeProjectSummary(d);
   var bodyHtml = (d.hebDate?'<p>'+formatHebDate(d.hebDate)+'</p>':'')+
+    (d.locked?'<p class="small-note">🔒 פרוייקט נעול - הנתונים קפואים מרגע הנעילה.</p>':'')+
     '<p>סה"כ משפחות: '+summary.totalFamilies+'</p>'+
     '<table><thead><tr><th>מוצר</th><th>משפחות רשומות</th><th>כמות להזמנה</th></tr></thead><tbody>'+
     summary.products.map(function(p){ return '<tr><td>'+p.name+'</td><td>'+p.familyCount+'</td><td>'+p.totalQty+'</td></tr>'; }).join('')+
@@ -2043,6 +2147,7 @@ document.getElementById('export-btn').addEventListener('click', function(){
   a.href = url; a.download = 'גיבוי_ניהול_עליות.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  try{ localStorage.setItem('lastBackupExport', String(Date.now())); }catch(e){}
 });
 document.getElementById('import-file').addEventListener('change', function(e){
   var file = e.target.files[0];
@@ -2090,6 +2195,16 @@ document.getElementById('export-people-btn').addEventListener('click', function(
     };
   });
   downloadSheet(rows, 'רשימת_מתפללים.xlsx', 'מתפללים');
+});
+document.getElementById('print-people-btn').addEventListener('click', function(){
+  var sorted = people.slice().sort(function(a,b){ return (a.lastName||'').localeCompare(b.lastName||''); });
+  var bodyHtml = '<table><thead><tr><th>שם</th><th>שם האב</th><th>סטטוס</th><th>סוג</th><th>טלפון</th><th>עלייה אחרונה</th></tr></thead><tbody>'+
+    sorted.map(function(p){
+      var host = people.find(function(h){ return h.id===p.linkedPersonId; });
+      return '<tr><td>'+fullName(p)+(host?(' ('+fullName(host)+')'):'')+'</td><td>'+(p.father||'—')+'</td><td>'+p.status+'</td><td>'+typeName(p.typeId)+'</td><td>'+(p.phone||'—')+'</td><td>'+formatHebDate(lastAliyahDate(p.id))+'</td></tr>';
+    }).join('')+
+    '</tbody></table>';
+  openPrintModal('רשימת מתפללים', bodyHtml, null, null);
 });
 document.getElementById('export-pledges-btn').addEventListener('click', function(){
   var rows = pledges.map(function(p){
@@ -2150,6 +2265,9 @@ function openPledgeActions(id){
 
 function openPrintModal(title, bodyHtml, excelRows, excelFilename){
   var root = document.getElementById('modal-root');
+  var logoEl = document.querySelector('.logo-img');
+  var logoHtml = logoEl ? '<div class="print-logo-wrap"><img class="print-logo" src="'+logoEl.src+'" alt=""><h2 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);margin:6px 0 0;">'+title+'</h2></div>' :
+    '<h2 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);">'+title+'</h2>';
   root.innerHTML = '<div class="modal-overlay" id="print-modal-overlay">'+
     '<div class="modal-box">'+
       '<div class="no-print" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">'+
@@ -2158,7 +2276,7 @@ function openPrintModal(title, bodyHtml, excelRows, excelFilename){
         '<button class="btn danger small" id="print-close-btn">סגירה</button>'+
       '</div>'+
       '<div class="print-area">'+
-        '<h2 style="font-family:\'Frank Ruhl Libre\',serif;color:var(--wine-dark);">'+title+'</h2>'+
+        logoHtml+
         bodyHtml+
       '</div>'+
     '</div></div>';
@@ -2260,7 +2378,31 @@ function openPersonLedger(personId){
   openPrintModal('כרטסת תשלומים — '+fullName(p), bodyHtml, excelRows, 'כרטסת_'+fullName(p)+'.xlsx');
 }
 
-loadAll();
+function checkBackupReminder(){
+  try{
+    var last = localStorage.getItem('lastBackupExport');
+    var days = last ? Math.floor((Date.now()-parseInt(last))/86400000) : null;
+    if(days!==null && days<14) return;
+    var root = document.getElementById('modal-root');
+    var msg = days===null ? 'עדיין לא ביצעת גיבוי נתונים מקומי מעולם.' : ('עברו '+days+' ימים מאז הגיבוי האחרון שלך.');
+    root.innerHTML = '<div class="modal-overlay" id="backup-reminder-overlay"><div class="modal-box" style="max-width:380px;">'+
+      '<h2>תזכורת גיבוי</h2>'+
+      '<p>'+msg+' כדאי לייצא קובץ גיבוי מדי פעם, כגיבוי נוסף מעבר לשמירה בענן.</p>'+
+      '<div style="display:flex;gap:10px;margin-top:12px;">'+
+        '<button class="btn" id="backup-reminder-go">מעבר לגיבוי עכשיו</button>'+
+        '<button class="btn secondary" id="backup-reminder-later">אחר כך</button>'+
+      '</div>'+
+    '</div></div>';
+    document.getElementById('backup-reminder-go').addEventListener('click', function(){
+      root.innerHTML = '';
+      document.querySelector('nav.tabs button[data-tab="settings"]').click();
+      document.getElementById('export-btn').scrollIntoView({behavior:'smooth', block:'center'});
+    });
+    document.getElementById('backup-reminder-later').addEventListener('click', function(){ root.innerHTML=''; });
+  }catch(e){}
+}
+
+loadAll().then(function(){ checkBackupReminder(); });
 </script>
 </body>
 </html>
